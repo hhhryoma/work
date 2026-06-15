@@ -1,0 +1,90 @@
+Attribute VB_Name = "modDiagnose"
+Option Explicit
+
+'======================================================================
+'  確認事項マクロ 診断ツール（使い捨て）
+'  対象ファイルを開いて  確認事項_図形を診断  を実行（Alt+F8）。
+'  「_診断」シートに全図形の状況を書き出します。
+'    一致?      … × はマーカー未認識（コード列で #・X・： の実体を確認）
+'    Page扱い   … × はマクロが走査しないシート（名前が Page で始まらない）
+'    グループ内 … ○ はグループ化されており現行マクロでは未対象
+'======================================================================
+Public Sub 確認事項_図形を診断()
+    Dim re As Object: Set re = CreateObject("VBScript.RegExp")
+    re.Global = False: re.IgnoreCase = True
+    re.Pattern = "^[\s　]*[#＃][\s　]*[0-9０-９XxＸｘ]*[\s　]*[：:]"   ' 本体マクロと同じ判定
+
+    Dim wb As Workbook: Set wb = ActiveWorkbook
+    Dim out As Worksheet
+    On Error Resume Next
+    Set out = wb.Worksheets("_診断")
+    On Error GoTo 0
+    If out Is Nothing Then
+        Set out = wb.Worksheets.Add(After:=wb.Worksheets(wb.Worksheets.Count))
+        out.Name = "_診断"
+    Else
+        out.Cells.Clear
+    End If
+    out.Range("A1:G1").Value = Array("シート", "Page扱い", "グループ内", "図形名", _
+                                     "一致?", "本文(先頭40字)", "先頭8文字のコード")
+
+    Dim gRow As Long: gRow = 2
+    Dim ws As Worksheet, shp As Shape
+    For Each ws In wb.Worksheets
+        If ws.Name <> "_診断" Then
+            For Each shp In ws.Shapes
+                DiagShape re, out, ws, shp, False, gRow
+            Next shp
+        End If
+    Next ws
+    out.Columns("A:G").AutoFit
+
+    MsgBox "診断完了：_診断シートを確認してください。" & vbCrLf & vbCrLf & _
+           "・[一致?] × … マーカー未認識（コード列で #・X・： の実体を確認）" & vbCrLf & _
+           "・[Page扱い] × … マクロが見に行かないシート（名前が Page で始まらない）" & vbCrLf & _
+           "・[グループ内] ○ … グループ化されており現行マクロでは未対象", vbInformation
+End Sub
+
+' 図形を1つ処理（グループなら中の図形へ再帰）
+Private Sub DiagShape(re As Object, out As Worksheet, ws As Worksheet, _
+                      shp As Shape, ByVal inGroup As Boolean, ByRef gRow As Long)
+    Dim isGroup As Boolean: isGroup = False
+    On Error Resume Next
+    isGroup = (shp.Type = msoGroup)
+    On Error GoTo 0
+    If isGroup Then
+        Dim sub_ As Shape
+        For Each sub_ In shp.GroupItems
+            DiagShape re, out, ws, sub_, True, gRow
+        Next sub_
+        Exit Sub
+    End If
+
+    Dim t As String: t = ""
+    On Error Resume Next
+    If shp.TextFrame2.HasText Then t = shp.TextFrame2.TextRange.Text
+    On Error GoTo 0
+    If Len(t) > 0 Then
+        out.Cells(gRow, 1).Value = ws.Name
+        out.Cells(gRow, 2).Value = IIf(UCase$(Left$(ws.Name, 4)) = "PAGE", "○", "×")
+        out.Cells(gRow, 3).Value = IIf(inGroup, "○", "")
+        out.Cells(gRow, 4).Value = shp.Name
+        out.Cells(gRow, 5).Value = IIf(re.Test(t), "○", "×")
+        out.Cells(gRow, 6).NumberFormat = "@"
+        out.Cells(gRow, 6).Value = Left$(t, 40)
+        out.Cells(gRow, 7).Value = CodePoints(t, 8)
+        gRow = gRow + 1
+    End If
+End Sub
+
+' 先頭 n 文字の Unicode コードポイントを "U+XXXX" 形式で返す
+Private Function CodePoints(ByVal s As String, ByVal n As Long) As String
+    Dim i As Long, lim As Long, res As String, code As Long
+    lim = n: If Len(s) < lim Then lim = Len(s)
+    For i = 1 To lim
+        code = AscW(Mid$(s, i, 1))
+        If code < 0 Then code = code + 65536
+        res = res & "U+" & Right$("0000" & Hex$(code), 4) & " "
+    Next i
+    CodePoints = res
+End Function
