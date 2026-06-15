@@ -1,0 +1,938 @@
+Attribute VB_Name = "modConfirmation"
+Option Explicit
+
+'======================================================================
+'  確認事項一覧 自動化マクロ（複数ファイル対応版）
+'----------------------------------------------------------------------
+'  使い方：このマクロを入れたツール用ブック(.xlsm)を開き、下記を実行。
+'          ファイル選択ダイアログで対象ファイル（複数選択可）を選ぶと、
+'          各ファイルを開いて処理し、保存して閉じます。
+'
+'  公開マクロ（Alt+F8 / ボタン割当）：
+'    1) 確認事項_ファイルを選んで更新
+'         … 配置位置(頁→上端)順で通番付与＋一覧反映
+'    2) 確認事項_ファイルを選んでPage全体通番に振り直す
+'         … Pageごとの既存番号を尊重し、ブック全体の連番へ変換（一覧も追従）
+'
+'  対象：Pageシート上の「吹き出し」で本文が #X： で始まるもの
+'        表記ゆれ対応 → # / ＃ , 半角/全角数字 , 半角/全角コロン , 前後空白
+'        吹き出しには一覧セルへのハイパーリンクを設定（マクロ不要でジャンプ）
+'======================================================================
+
+'==== 設定（実ファイルに合わせて変更可） ====
+Private Const PAGE_PREFIX As String = "Page"          ' Pageシート名の接頭辞
+Private Const LIST_PREFIX As String = "確認事項一覧"   ' 一覧シート名の接頭辞（後半可変）
+Private Const HDR_ROW As Long = 1
+Private Const FIRST_DATA_ROW As Long = 2
+
+' 列番号
+Private Const COL_NO As Long = 1      ' A: #（通番）
+Private Const COL_PAGE As Long = 2    ' B: 頁
+Private Const COL_LINK As Long = 3    ' C: リンク
+Private Const COL_ITEM As Long = 7    ' G: 確認事項
+' 対応キー（非表示）。近い列を別項目に使えるよう、既定は遠くの100列目(CV)。
+' 列番号を変えるとマクロが自動で旧 _Key 列から移行します。
+Private Const KEY_COL As Long = 100        ' CV: 対応キー（非表示）
+Private Const KEY_HEADER As String = "_Key"
+
+Private Const NO_NUMBER As Long = 9999999   ' 番号なし吹き出しの並べ替え用
+Private Const MARK_SKIPPED As Boolean = True ' スキップした図形を赤い太枠でマーキングする
+
+
+'======================================================================
+'  公開エントリ（ファイル選択 → 一括処理）
+'======================================================================
+Public Sub 確認事項_ファイルを選んで更新()
+    ProcessFiles "POS"
+End Sub
+
+Public Sub 確認事項_ファイルを選んでPage全体通番に振り直す()
+    ProcessFiles "LOCAL"
+End Sub
+
+
+'======================================================================
+'  ファイル選択＆一括処理
+'======================================================================
+Private Sub ProcessFiles(ByVal mode As String)
+    Dim selected As Variant
+    selected = Application.GetOpenFilename( _
+        "Excelブック (*.xlsx;*.xlsm;*.xlsb),*.xlsx;*.xlsm;*.xlsb", _
+        , "処理する確認事項ファイルを選択（複数選択可）", , True)
+    If Not IsArray(selected) Then Exit Sub   ' キャンセル
+
+    ' 環境退避
+    Dim prevSU As Boolean, prevEV As Boolean, prevDA As Boolean, prevAS As Long
+    prevSU = Application.ScreenUpdating
+    prevEV = Application.EnableEvents
+    prevDA = Application.DisplayAlerts
+    prevAS = Application.AutomationSecurity
+
+    Dim log As String, i As Long, path As String, fname As String
+    Dim wb As Workbook, openedHere As Boolean, res As String, hadError As Boolean
+
+    On Error GoTo Fail   ' 想定外の例外でも必ず環境を復帰させる
+    Application.ScreenUpdating = False
+    Application.EnableEvents = False
+    Application.DisplayAlerts = False
+    Application.AutomationSecurity = msoAutomationSecurityForceDisable
+
+    For i = LBound(selected) To UBound(selected)
+        path = CStr(selected(i))
+        fname = Mid$(path, InStrRev(path, "\") + 1)
+        openedHere = False
+
+        Set wb = GetOpenWorkbook(path)
+        If wb Is Nothing Then
+            On Error Resume Next
+            Set wb = Workbooks.Open(Filename:=path, UpdateLinks:=0)
+            On Error GoTo Fail
+            openedHere = True
+        End If
+
+        If wb Is Nothing Then
+            log = log & "× " & fname & " ： 開けませんでした" & vbCrLf
+        ElseIf wb Is ThisWorkbook Then
+            log = log & "－ " & fname & " ： マクロ本体のためスキップ" & vbCrLf
+        Else
+            res = ""
+            On Error Resume Next
+            res = ProcessOneWorkbook(wb, mode)
+            If Err.Number <> 0 Then res = "エラー: " & Err.Description
+            On Error GoTo Fail
+
+            hadError = (InStr(res, "エラー") = 1)
+
+            If openedHere Then
+                If hadError Then
+                    wb.Close SaveChanges:=False          ' 中途半端な変更は保存せず破棄
+                Else
+                    On Error Resume Next
+                    wb.Save
+                    If Err.Number <> 0 Then res = res & "（保存失敗: " & Err.Description & "）"
+                    On Error GoTo Fail
+                    wb.Close SaveChanges:=False
+                End If
+            ElseIf Not hadError Then
+                res = res & "（既に開いていたため未保存）"
+            End If
+            log = log & "○ " & fname & " ： " & res & vbCrLf
+        End If
+        Set wb = Nothing
+    Next i
+
+    RestoreApp prevSU, prevEV, prevDA, prevAS
+    MsgBox "処理結果：" & vbCrLf & vbCrLf & log, vbInformation, _
+           IIf(mode = "LOCAL", "Page全体通番に振り直し", "確認事項一覧を更新")
+    Exit Sub
+
+Fail:
+    Dim em As String
+    em = "想定外のエラー: " & Err.Number & " " & Err.Description
+    RestoreApp prevSU, prevEV, prevDA, prevAS
+    MsgBox em & vbCrLf & vbCrLf & "ここまでの結果：" & vbCrLf & log, vbCritical
+End Sub
+
+' Applicationの各設定を元に戻す
+Private Sub RestoreApp(su As Boolean, ev As Boolean, da As Boolean, asec As Long)
+    Application.ScreenUpdating = su
+    Application.EnableEvents = ev
+    Application.DisplayAlerts = da
+    Application.AutomationSecurity = asec
+End Sub
+
+' 既に開いているブックか判定（フルパス一致）
+Private Function GetOpenWorkbook(ByVal path As String) As Workbook
+    Dim w As Workbook
+    For Each w In Application.Workbooks
+        On Error Resume Next
+        If StrComp(w.FullName, path, vbTextCompare) = 0 Then
+            Set GetOpenWorkbook = w: Exit Function
+        End If
+        On Error GoTo 0
+    Next w
+End Function
+
+
+'======================================================================
+'  1ブック分の処理
+'======================================================================
+Private Function ProcessOneWorkbook(wb As Workbook, ByVal mode As String) As String
+    Dim wsList As Worksheet
+    Set wsList = FindListSheet(wb)
+    If wsList Is Nothing Then
+        ProcessOneWorkbook = "スキップ（「" & LIST_PREFIX & "」シート無し）"
+        Exit Function
+    End If
+
+    EnsureKeyColumn wsList
+    EnsureUniqueShapeNames wb       ' 同名図形を解消（同名だと Shapes(name) が片方しか返さずリンクが付かない）
+
+    Dim items As Collection: Set items = CollectShapes(wb)
+    If items.Count = 0 Then
+        ProcessOneWorkbook = "対象の吹き出し（#X：…）無し"
+        Exit Function
+    End If
+
+    Dim arr() As Variant: arr = SortItems(items, mode)
+    Dim report As String
+    report = ProcessOrdered(wb, wsList, arr)
+    ProcessOneWorkbook = UBound(arr) & " 件処理"
+    If Len(report) > 0 Then ProcessOneWorkbook = ProcessOneWorkbook & report
+End Function
+
+
+'======================================================================
+'  収集・並べ替え・反映
+'======================================================================
+' 対象吹き出しを収集：各要素 = Array(wsName, shpName, 頁, ローカル番号, Top, Left)
+Private Function CollectShapes(wb As Workbook) As Collection
+    Dim coll As Collection: Set coll = New Collection
+    Dim re As Object: Set re = MakeRegex()
+    Dim ws As Worksheet, shp As Shape, t As String, pno As Long
+    For Each ws In wb.Worksheets
+        If IsPageSheet(ws) Then
+            pno = GetPageNo(ws)
+            For Each shp In ws.Shapes
+                On Error Resume Next
+                t = ""
+                t = GetShapeText(shp)
+                On Error GoTo 0
+                If Len(t) > 0 Then
+                    If re.Test(t) Then
+                        On Error Resume Next
+                        coll.Add Array(ws.Name, shp.Name, pno, _
+                                       ParseMarkerNumber(t), shp.Top, shp.Left)
+                        On Error GoTo 0
+                    End If
+                End If
+            Next shp
+        End If
+    Next ws
+    Set CollectShapes = coll
+End Function
+
+' mode="POS"  : 頁 → 上端 → 左端
+' mode="LOCAL": 頁 → ローカル番号 → 上端
+Private Function SortItems(items As Collection, ByVal mode As String) As Variant
+    Dim n As Long: n = items.Count
+    Dim arr() As Variant, keys() As String, i As Long, j As Long
+    ReDim arr(1 To n): ReDim keys(1 To n)
+    Dim e As Variant
+    For i = 1 To n
+        e = items(i)
+        arr(i) = e
+        If mode = "LOCAL" Then
+            keys(i) = Pad(e(2)) & Pad(e(3)) & Pad(CLng(Int(e(4))))
+        Else
+            keys(i) = Pad(e(2)) & Pad(CLng(Int(e(4)))) & Pad(CLng(Int(e(5))))
+        End If
+    Next i
+
+    Dim tk As String, ta As Variant
+    For i = 1 To n - 1
+        For j = 1 To n - i
+            If keys(j) > keys(j + 1) Then
+                tk = keys(j): keys(j) = keys(j + 1): keys(j + 1) = tk
+                ta = arr(j): arr(j) = arr(j + 1): arr(j + 1) = ta
+            End If
+        Next j
+    Next i
+    SortItems = arr
+End Function
+
+' 並べ替え済み配列で 通番付与・一覧反映・重複集約・双方向ジャンプ・孤立検出
+' 戻り値：スキップした図形があれば「件数＋一覧」の文字列、無ければ空文字
+Private Function ProcessOrdered(wb As Workbook, wsList As Worksheet, arr() As Variant) As String
+    Dim re As Object: Set re = MakeRegex()
+    Dim dict As Object: Set dict = CreateObject("Scripting.Dictionary")
+    Dim seen As Object: Set seen = CreateObject("Scripting.Dictionary")
+    Dim byContent As Object: Set byContent = CreateObject("Scripting.Dictionary")
+    Dim ambig As Object: Set ambig = CreateObject("Scripting.Dictionary")
+    Dim skipList As Collection: Set skipList = New Collection   ' Array(wsName, shpName, 理由)
+
+    ' --- 既存行スキャン：キー→行 辞書、未キー行の(頁+本文)→行 辞書（引き当て用） ---
+    Dim lastRow As Long, r As Long, k As String, ck As String, gtxt As String
+    lastRow = LastDataRow(wsList)
+    For r = FIRST_DATA_ROW To lastRow
+        k = CStr(wsList.Cells(r, KEY_COL).Value)
+        If Len(k) > 0 Then
+            If Not dict.Exists(k) Then dict.Add k, r
+        Else
+            gtxt = Trim$(CStr(wsList.Cells(r, COL_ITEM).Value))
+            If Len(gtxt) > 0 Then
+                ck = ContentKey(wsList.Cells(r, COL_PAGE).Value, gtxt)
+                If byContent.Exists(ck) Then
+                    ambig(ck) = True
+                ElseIf Not ambig.Exists(ck) Then
+                    byContent.Add ck, r
+                End If
+            End If
+        End If
+    Next r
+
+    ' --- フェーズ1：吹き出し採番＋一覧へ反映（リンクは後で設定）。図形単位でエラーを隔離 ---
+    Dim n As Long: n = UBound(arr)
+    Dim keyList As Object: Set keyList = CreateObject("Scripting.Dictionary")  ' i -> Array(wsName,shpName,key)
+    Dim i As Long, serial As Long, wsName As String, shpName As String, pno As Long
+    Dim t As String, content As String, ck2 As String
+    Dim mk As String, mlen As Long, newMk As String
+    Dim body As String, cleanBody As String, normBody As String, bodyChanged As Boolean
+    Dim mc As Object
+    Dim targetWs As Worksheet, targetShp As Shape
+    For i = 1 To n
+        On Error GoTo P1Err
+        serial = i
+        wsName = arr(i)(0): shpName = arr(i)(1): pno = arr(i)(2)
+        Set targetWs = wb.Worksheets(wsName)
+        Set targetShp = targetWs.Shapes(shpName)
+
+        t = GetShapeText(targetShp)
+        Set mc = re.Execute(t)
+        If mc.Count = 0 Then                      ' マーカー再判定で不一致（無記録にせず可視化）
+            skipList.Add Array(wsName, shpName, "マーカー再判定で不一致（収集時と差異）")
+            GoTo P1Next
+        End If
+        mk = mc(0).Value
+        mlen = Len(mk)
+        newMk = "#" & serial & "："
+        ' 本文（マーカー以降）を整形：中間の連続空白行を1行に圧縮＋末尾の空白行と末尾の「、」を除去
+        body = Mid$(t, mlen + 1)
+        cleanBody = CleanBubbleBody(body)
+        normBody = NormalizeBreaks(body)
+        bodyChanged = (StrComp(cleanBody, normBody, vbBinaryCompare) <> 0)
+        content = Trim$(cleanBody)
+        If bodyChanged Then
+            ' 本文の文字書式を保持したまま、不要文字だけを範囲削除する
+            If CleanBubbleInPlace(targetShp, mlen) Then
+                If mk <> newMk Then RenumberMarker targetShp, mlen, newMk
+            Else
+                ApplyBubbleText targetShp, newMk, cleanBody   ' 範囲削除不可の環境は丸ごと書き換え（本文書式リセット）
+            End If
+        ElseIf mk <> newMk Then
+            RenumberMarker targetShp, mlen, newMk          ' 本文不変ならマーカーのみ置換（書式保持）
+        End If
+
+        k = wsName & "|" & shpName
+        seen(k) = True
+        If dict.Exists(k) Then
+            r = dict(k)
+        Else
+            ck2 = ContentKey(pno, content)
+            If byContent.Exists(ck2) And Not ambig.Exists(ck2) Then
+                r = byContent(ck2): byContent.Remove ck2     ' 未キー行を引き当て
+            Else
+                r = LastDataRow(wsList) + 1
+                If r < FIRST_DATA_ROW Then r = FIRST_DATA_ROW
+            End If
+            wsList.Cells(r, KEY_COL).Value = k
+            dict.Add k, r
+        End If
+        wsList.Cells(r, COL_PAGE).Value = pno
+        wsList.Cells(r, COL_ITEM).Value = content
+        If Not keyList.Exists(i) Then keyList.Add i, Array(wsName, shpName, k)
+        GoTo P1Next
+P1Err:
+        skipList.Add Array(wsName, shpName, Err.Description)
+        Err.Clear
+        Resume P1Next
+P1Next:
+    Next i
+    On Error GoTo 0
+
+    ' --- フェーズ2：重複(頁+本文)行の集約。キー行を残し、未キーの重複行は削除 ---
+    CollapseDuplicates wsList
+
+    ' --- フェーズ3：削除で行が動くため、キーで行を引き直してリンク再設定 ---
+    Dim keymap As Object: Set keymap = BuildKeyMap(wsList)
+    Dim linkFail As Collection: Set linkFail = New Collection
+    Dim info As Variant, anchor As String, emsg As String
+    For i = 1 To n
+        If keyList.Exists(i) Then
+            info = keyList(i)
+            wsName = info(0): shpName = info(1): k = info(2)
+            If keymap.Exists(k) Then
+                r = keymap(k)
+                Set targetWs = wb.Worksheets(wsName)
+                Set targetShp = Nothing
+                On Error Resume Next
+                Set targetShp = targetWs.Shapes(shpName)
+                On Error GoTo 0
+                If Not targetShp Is Nothing Then
+                    ' 一覧→吹き出し位置（リンク列／セルのハイパーリンク）
+                    On Error Resume Next
+                    anchor = "'" & EscapeSheet(wsName) & "'!" & targetShp.TopLeftCell.Address(False, False)
+                    SetCellLink wsList, r, COL_LINK, anchor, wsName
+                    On Error GoTo 0
+                    ' 吹き出し→一覧セル（シェイプのハイパーリンク）。失敗は記録して可視化
+                    targetShp.OnAction = ""
+                    emsg = SetShapeLink(targetWs, targetShp, _
+                        "'" & EscapeSheet(wsList.Name) & "'!" & wsList.Cells(r, COL_ITEM).Address(False, False))
+                    If Len(emsg) > 0 Then linkFail.Add wsName & "!" & shpName & " : " & emsg
+                Else
+                    linkFail.Add wsName & "!" & shpName & " : 図形が見つからない（名前変更/削除？）"
+                End If
+            Else
+                linkFail.Add wsName & "!" & shpName & " : 一覧側の行が特定できない（キー未登録）"
+            End If
+        End If
+    Next i
+
+    ' --- 一覧の # は「一覧内の項番」。行順に 1,2,3… を再採番。孤立行は # を着色 ---
+    Dim seq As Long: seq = 0
+    Dim g As String
+    lastRow = LastDataRow(wsList)
+    For r = FIRST_DATA_ROW To lastRow
+        g = CStr(wsList.Cells(r, COL_ITEM).Value)
+        k = CStr(wsList.Cells(r, KEY_COL).Value)
+        If Len(g) > 0 Or Len(k) > 0 Then
+            seq = seq + 1
+            wsList.Cells(r, COL_NO).Value = seq
+            If Len(k) > 0 And Not seen.Exists(k) Then
+                wsList.Cells(r, COL_NO).Interior.Color = RGB(255, 199, 206)  ' 対応吹き出し無し
+            Else
+                wsList.Cells(r, COL_NO).Interior.ColorIndex = xlNone
+            End If
+        End If
+    Next r
+
+    ' --- スキップした図形：赤い太枠でマーキングし、レポート文字列を作成 ---
+    Dim rep As String, m As Long, sk As Variant, sh As Shape
+    If skipList.Count > 0 Then
+        rep = "（" & skipList.Count & " 件の図形をスキップ）"
+        For m = 1 To skipList.Count
+            sk = skipList(m)
+            rep = rep & vbCrLf & "      - " & sk(0) & "!" & sk(1) & " : " & sk(2)
+            If MARK_SKIPPED Then
+                On Error Resume Next
+                Set sh = Nothing
+                Set sh = wb.Worksheets(CStr(sk(0))).Shapes(CStr(sk(1)))
+                If Not sh Is Nothing Then
+                    sh.Line.Visible = msoTrue
+                    sh.Line.ForeColor.RGB = RGB(255, 0, 0)
+                    sh.Line.Weight = 2.25
+                End If
+                On Error GoTo 0
+            End If
+        Next m
+    End If
+    If linkFail.Count > 0 Then
+        rep = rep & vbCrLf & "（" & linkFail.Count & " 件の吹き出しリンク設定に失敗）"
+        For m = 1 To linkFail.Count
+            rep = rep & vbCrLf & "      - " & linkFail(m)
+        Next m
+    End If
+    ProcessOrdered = rep
+End Function
+
+' (頁+本文)が重複する行を集約。キー行を生かし、未キーの重複行は D/E/F をマージ後に削除。
+' キー同士の重複（別シェイプの同一文言）は両方残す。
+Private Sub CollapseDuplicates(ws As Worksheet)
+    Dim grp As Object: Set grp = CreateObject("Scripting.Dictionary")  ' ck -> survivor row
+    Dim delRows As Collection: Set delRows = New Collection
+    Dim lastRow As Long, r As Long, g As String, k As String, ck As String
+    Dim sRow As Long, sKey As String
+    lastRow = LastDataRow(ws)
+    For r = FIRST_DATA_ROW To lastRow
+        g = Trim$(CStr(ws.Cells(r, COL_ITEM).Value))
+        If Len(g) > 0 Then
+            k = CStr(ws.Cells(r, KEY_COL).Value)
+            ck = ContentKey(ws.Cells(r, COL_PAGE).Value, g)
+            If Not grp.Exists(ck) Then
+                grp.Add ck, r
+            Else
+                sRow = grp(ck): sKey = CStr(ws.Cells(sRow, KEY_COL).Value)
+                If Len(k) > 0 And Len(sKey) = 0 Then
+                    MergeManual ws, r, sRow          ' キー行を生存させ、未キーの旧survivorを削除
+                    delRows.Add sRow
+                    grp(ck) = r
+                ElseIf Len(k) = 0 Then
+                    MergeManual ws, sRow, r          ' 未キーの重複行を削除
+                    delRows.Add r
+                ' （両方キー有り＝別シェイプの同一文言は何もしない＝両方残す）
+                End If
+            End If
+        End If
+    Next r
+
+    Dim cnt As Long: cnt = delRows.Count
+    If cnt = 0 Then Exit Sub
+    Dim d() As Long, a As Long, b As Long, tmp As Long
+    ReDim d(1 To cnt)
+    For a = 1 To cnt: d(a) = delRows(a): Next a
+    For a = 1 To cnt - 1                              ' 降順に並べ替えて下から削除
+        For b = 1 To cnt - a
+            If d(b) < d(b + 1) Then tmp = d(b): d(b) = d(b + 1): d(b + 1) = tmp
+        Next b
+    Next a
+    For a = 1 To cnt
+        ws.Rows(d(a)).Delete
+    Next a
+End Sub
+
+' 手入力列 D/E/F を src から dst へ（dst が空のときだけ）コピー
+Private Sub MergeManual(ws As Worksheet, ByVal dstRow As Long, ByVal srcRow As Long)
+    Dim c As Long
+    For c = 4 To 6
+        If Len(CStr(ws.Cells(dstRow, c).Value)) = 0 Then
+            ws.Cells(dstRow, c).Value = ws.Cells(srcRow, c).Value
+        End If
+    Next c
+End Sub
+
+' キー→行 の対応表を作る（行削除後の引き直し用）
+Private Function BuildKeyMap(ws As Worksheet) As Object
+    Dim d As Object: Set d = CreateObject("Scripting.Dictionary")
+    Dim lastRow As Long, r As Long, k As String
+    lastRow = LastDataRow(ws)
+    For r = FIRST_DATA_ROW To lastRow
+        k = CStr(ws.Cells(r, KEY_COL).Value)
+        If Len(k) > 0 Then If Not d.Exists(k) Then d.Add k, r
+    Next r
+    Set BuildKeyMap = d
+End Function
+
+
+'======================================================================
+'  ヘルパー
+'======================================================================
+' 照合用に本文を正規化（空白除去・全角半角統一・小文字化）し「頁|正規化本文」を返す。
+' リンク本体のキー(シート名|図形名)とは別物で、引き当て・重複集約の同一判定にのみ使う。
+Private Function ContentKey(ByVal pageVal As Variant, ByVal text As String) As String
+    Dim s As String
+    s = CStr(text)
+    s = Replace$(s, vbCr, "")
+    s = Replace$(s, vbLf, "")
+    s = Replace$(s, vbTab, "")
+    s = Replace$(s, " ", "")
+    s = Replace$(s, "　", "")          ' 全角スペース
+    On Error Resume Next
+    s = StrConv(s, vbNarrow)            ' 全角英数カナ→半角（環境により失敗しても無視）
+    On Error GoTo 0
+    s = LCase$(s)
+    ContentKey = CStr(pageVal) & "|" & s
+End Function
+
+' データ最終行（確認事項列・キー列の大きい方）
+Private Function LastDataRow(ws As Worksheet) As Long
+    Dim lrG As Long, lrH As Long
+    lrG = ws.Cells(ws.Rows.Count, COL_ITEM).End(xlUp).Row
+    lrH = ws.Cells(ws.Rows.Count, KEY_COL).End(xlUp).Row
+    LastDataRow = IIf(lrG > lrH, lrG, lrH)
+    If LastDataRow < FIRST_DATA_ROW - 1 Then LastDataRow = FIRST_DATA_ROW - 1
+End Function
+
+Private Function FindListSheet(wb As Workbook) As Worksheet
+    Dim ws As Worksheet
+    For Each ws In wb.Worksheets
+        If Left$(ws.Name, Len(LIST_PREFIX)) = LIST_PREFIX Then
+            Set FindListSheet = ws: Exit Function
+        End If
+    Next ws
+End Function
+
+Private Function IsPageSheet(ws As Worksheet) As Boolean
+    IsPageSheet = (UCase$(ws.Name) Like UCase$(PAGE_PREFIX) & "*")
+End Function
+
+Private Function GetPageNo(ws As Worksheet) As Long
+    Dim s As String, i As Long, ch As String, num As String
+    s = ws.Name
+    For i = 1 To Len(s)
+        ch = Mid$(s, i, 1)
+        If ch >= "0" And ch <= "9" Then num = num & ch
+    Next i
+    If Len(num) > 0 Then GetPageNo = CLng(num) Else GetPageNo = ws.Index
+End Function
+
+' 表記ゆれ対応：先頭の "#数字：" マーカー
+'   # / ＃ , 半角/全角数字 , 半角/全角コロン , 前後の半角/全角スペース
+Private Function MakeRegex() As Object
+    Dim re As Object
+    Set re = CreateObject("VBScript.RegExp")
+    re.Global = False
+    re.IgnoreCase = True
+    re.Pattern = "^[\s　]*[#＃][\s　]*[0-9０-９]*[\s　]*[：:]"
+    Set MakeRegex = re
+End Function
+
+' マーカー内の数字を取得（全角→半角に正規化）。番号なしは NO_NUMBER。
+Private Function ParseMarkerNumber(ByVal t As String) As Long
+    Dim re As Object: Set re = MakeRegex()
+    If Not re.Test(t) Then ParseMarkerNumber = NO_NUMBER: Exit Function
+    Dim s As String, i As Long, ch As String, num As String
+    s = re.Execute(t)(0).Value
+    For i = 1 To Len(s)
+        ch = Mid$(s, i, 1)
+        If ch >= "0" And ch <= "9" Then
+            num = num & ch
+        ElseIf ch >= "０" And ch <= "９" Then
+            num = num & ChrW$(AscW(ch) - AscW("０") + AscW("0"))
+        End If
+    Next i
+    If Len(num) > 0 Then ParseMarkerNumber = CLng(num) Else ParseMarkerNumber = NO_NUMBER
+End Function
+
+Private Function Pad(ByVal v As Long) As String
+    If v < 0 Then v = 0          ' 負値（行1より上の配置等）で桁崩れしないよう0に丸める
+    Pad = Format$(v, "0000000")
+End Function
+
+Private Function GetShapeText(shp As Shape) As String
+    On Error Resume Next
+    If shp.TextFrame2.HasText Then GetShapeText = shp.TextFrame2.TextRange.Text
+    On Error GoTo 0
+End Function
+
+' 先頭から oldLen 文字（既存マーカー）だけを newMarker に置換。
+' 本文側の文字書式（太字・色・サイズ等）は変更しない。
+Private Sub RenumberMarker(shp As Shape, ByVal oldLen As Long, ByVal newMarker As String)
+    If oldLen < 1 Then Exit Sub
+    On Error Resume Next
+    ' TextFrame2 で部分置換（本文の書式を保持）
+    shp.TextFrame2.TextRange.Characters(1, oldLen).Text = newMarker
+    If Err.Number <> 0 Then
+        ' フォールバック：旧 TextFrame
+        Err.Clear
+        shp.TextFrame.Characters(Start:=1, Length:=oldLen).Text = newMarker
+    End If
+    On Error GoTo 0
+End Sub
+
+' 本文（マーカー以降）から不要文字だけを範囲削除し、残った文字の書式を保持する。
+' 文字列長と Characters 数が一致しない環境（CRLF等で1:1にならない）では False を返し、
+' 呼び出し側で丸ごと書き換えにフォールバックさせる。
+Private Function CleanBubbleInPlace(shp As Shape, ByVal mlen As Long) As Boolean
+    Dim tr As Object
+    On Error Resume Next
+    Set tr = shp.TextFrame2.TextRange
+    On Error GoTo 0
+    If tr Is Nothing Then CleanBubbleInPlace = False: Exit Function
+
+    Dim raw As String, cnt As Long
+    On Error Resume Next
+    raw = tr.Text
+    cnt = tr.Characters.Count
+    On Error GoTo 0
+    If Len(raw) <> cnt Then CleanBubbleInPlace = False: Exit Function   ' インデックス不一致→フォールバック
+    If mlen >= Len(raw) Then CleanBubbleInPlace = True: Exit Function    ' 本文なし
+
+    Dim B As String: B = Mid$(raw, mlen + 1)
+    Dim Lb As Long: Lb = Len(B)
+
+    ' --- 本文を行に分解（vbCr / vbLf を各1文字の区切りとして扱う） ---
+    Dim sIdx() As Long, lenArr() As Long, blankArr() As Boolean, keep() As Boolean
+    ReDim sIdx(0 To Lb): ReDim lenArr(0 To Lb)
+    Dim p As Long, curStart As Long, curLen As Long, idx As Long, ch As String
+    p = -1: curStart = 1: curLen = 0
+    For idx = 1 To Lb
+        ch = Mid$(B, idx, 1)
+        If ch = vbCr Or ch = vbLf Then
+            p = p + 1: sIdx(p) = curStart: lenArr(p) = curLen
+            curStart = idx + 1: curLen = 0
+        Else
+            curLen = curLen + 1
+        End If
+    Next idx
+    p = p + 1: sIdx(p) = curStart: lenArr(p) = curLen     ' 最終行（lenは0もあり得る）
+
+    ReDim blankArr(0 To p): ReDim keep(0 To p)
+    Dim k As Long
+    For k = 0 To p
+        blankArr(k) = (Len(TrimSpaces(Mid$(B, sIdx(k), lenArr(k)))) = 0)
+    Next k
+
+    ' --- 連続空白行は最初の1つだけ残す ---
+    Dim prevBlank As Boolean: prevBlank = False
+    For k = 0 To p
+        If blankArr(k) Then
+            If Not prevBlank Then
+                keep(k) = True: prevBlank = True
+            Else
+                keep(k) = False
+            End If
+        Else
+            keep(k) = True: prevBlank = False
+        End If
+    Next k
+
+    ' --- 末尾の空白行・「、」だけの行を落とし、最後の本文行の末尾「、」を削る文字数を決める ---
+    Dim trimN As Long: trimN = 0
+    Dim lastKeep As Long, lc As String, stripped As String
+    Do
+        lastKeep = -1
+        For k = p To 0 Step -1
+            If keep(k) Then lastKeep = k: Exit For
+        Next k
+        If lastKeep < 0 Then Exit Do
+        lc = Mid$(B, sIdx(lastKeep), lenArr(lastKeep))
+        If Len(TrimSpaces(lc)) = 0 Then
+            keep(lastKeep) = False
+        Else
+            stripped = StripTrailingReadten(lc)
+            If Len(stripped) = 0 Then
+                keep(lastKeep) = False
+            Else
+                trimN = Len(lc) - Len(stripped)
+                Exit Do
+            End If
+        End If
+    Loop
+
+    ' --- 残す文字のマスクを作る（空白行はスペースも捨てて区切りだけ残す） ---
+    Dim keepCh() As Boolean: ReDim keepCh(1 To Lb)
+    Dim eff As Long, j As Long, kk As Long, hasAfter As Boolean
+    For k = 0 To p
+        If keep(k) Then
+            eff = lenArr(k)
+            If blankArr(k) Then eff = 0
+            If k = lastKeep Then eff = lenArr(k) - trimN
+            For j = 0 To eff - 1
+                keepCh(sIdx(k) + j) = True
+            Next j
+            If k < p Then
+                hasAfter = False
+                For kk = k + 1 To p
+                    If keep(kk) Then hasAfter = True: Exit For
+                Next kk
+                If hasAfter Then keepCh(sIdx(k) + lenArr(k)) = True   ' 行間の区切りを1つだけ残す
+            End If
+        End If
+    Next k
+
+    ' --- 残さない文字を連続範囲にまとめ、末尾側から削除（位置ズレ防止） ---
+    Dim runStart As Long, runEnd As Long
+    idx = Lb
+    Do While idx >= 1
+        If Not keepCh(idx) Then
+            runEnd = idx
+            Do While idx >= 1
+                If keepCh(idx) Then Exit Do
+                idx = idx - 1
+            Loop
+            runStart = idx + 1
+            On Error Resume Next
+            tr.Characters(mlen + runStart, runEnd - runStart + 1).Delete
+            On Error GoTo 0
+        Else
+            idx = idx - 1
+        End If
+    Loop
+
+    CleanBubbleInPlace = True
+End Function
+
+' 吹き出しのテキストを「マーカー＋整形済み本文」で丸ごと書き換える（フォールバック用）。
+' 本文側の文字書式はリセットされる。
+Private Sub ApplyBubbleText(shp As Shape, ByVal marker As String, ByVal body As String)
+    Dim full As String: full = marker & body
+    On Error Resume Next
+    shp.TextFrame2.TextRange.Text = full
+    If Err.Number <> 0 Then
+        Err.Clear
+        shp.TextFrame.Characters.Text = full      ' フォールバック：旧 TextFrame
+    End If
+    On Error GoTo 0
+End Sub
+
+' 改行コードを vbLf に統一（vbCrLf / vbCr / 手動改行 Chr(11) を吸収）。
+' ※書き戻しは必ず単一 vbLf。vbCrLf のまま書くと空行が二重に増える環境があるため。
+Private Function NormalizeBreaks(ByVal s As String) As String
+    s = Replace$(s, vbCrLf, vbLf)
+    s = Replace$(s, vbCr, vbLf)
+    s = Replace$(s, Chr$(11), vbLf)
+    NormalizeBreaks = s
+End Function
+
+' 本文整形：
+'   1) 中間の連続空白行は 1 行に圧縮
+'   2) 末尾の空白行を除去
+'   3) 末尾の「、」「，」（と直後の空白）を除去（「、」だけの最終行も消える）
+Private Function CleanBubbleBody(ByVal s As String) As String
+    Dim lines() As String, outArr() As String
+    Dim i As Long, m As Long
+    Dim ln As String, core As String, last As String, res As String
+    Dim prevBlank As Boolean
+
+    lines = Split(NormalizeBreaks(s), vbLf)
+    ReDim outArr(0 To UBound(lines))
+    m = -1: prevBlank = False
+    For i = 0 To UBound(lines)
+        ln = lines(i)
+        core = TrimSpaces(ln)
+        If Len(core) = 0 Then
+            If Not prevBlank Then        ' 連続空白行は最初の1つだけ残す
+                m = m + 1: outArr(m) = ""
+                prevBlank = True
+            End If
+        Else
+            m = m + 1: outArr(m) = ln
+            prevBlank = False
+        End If
+    Next i
+
+    ' 末尾の空白行を除去
+    Do While m >= 0
+        If Len(TrimSpaces(outArr(m))) = 0 Then m = m - 1 Else Exit Do
+    Loop
+
+    ' 末尾の「、」「，」を除去し、空になったら更に末尾空白行を落とす
+    If m >= 0 Then
+        last = StripTrailingReadten(outArr(m))
+        outArr(m) = last
+        Do While m >= 0
+            If Len(TrimSpaces(outArr(m))) = 0 Then m = m - 1 Else Exit Do
+        Loop
+    End If
+
+    For i = 0 To m
+        If i > 0 Then res = res & vbLf
+        res = res & outArr(i)
+    Next i
+    CleanBubbleBody = res
+End Function
+
+' 前後の半角/全角スペースとタブを除去
+Private Function TrimSpaces(ByVal s As String) As String
+    Dim r As String, c As String
+    r = Replace$(s, vbTab, " ")
+    Do While Len(r) > 0
+        c = Left$(r, 1)
+        If c = " " Or c = "　" Then r = Mid$(r, 2) Else Exit Do
+    Loop
+    Do While Len(r) > 0
+        c = Right$(r, 1)
+        If c = " " Or c = "　" Then r = Left$(r, Len(r) - 1) Else Exit Do
+    Loop
+    TrimSpaces = r
+End Function
+
+' 末尾の「、」「，」と、その直後にある空白を繰り返し除去
+Private Function StripTrailingReadten(ByVal s As String) As String
+    Dim r As String, c As String
+    r = s
+    Do While Len(r) > 0
+        c = Right$(r, 1)
+        If c = "、" Or c = "，" Or c = " " Or c = "　" Or c = vbTab Then
+            r = Left$(r, Len(r) - 1)
+        Else
+            Exit Do
+        End If
+    Loop
+    StripTrailingReadten = r
+End Function
+
+' 一覧セルにシート内ジャンプのハイパーリンクを設定
+Private Sub SetCellLink(ws As Worksheet, ByVal r As Long, ByVal c As Long, _
+                        ByVal subAddr As String, ByVal disp As String)
+    Dim cell As Range: Set cell = ws.Cells(r, c)
+    cell.Hyperlinks.Delete
+    ws.Hyperlinks.Add Anchor:=cell, Address:="", SubAddress:=subAddr, TextToDisplay:=disp
+End Sub
+
+' 吹き出し(シェイプ)にシート内ジャンプのハイパーリンクを設定。
+' 既存のシェイプハイパーリンクを除去してから追加。失敗時はエラー説明を返す（成功なら""）。
+Private Function SetShapeLink(ws As Worksheet, shp As Shape, ByVal subAddr As String) As String
+    Dim hl As Hyperlink, hs As Shape, sName As String, kk As Long
+    sName = shp.Name
+    On Error Resume Next
+    For kk = ws.Hyperlinks.Count To 1 Step -1
+        Set hl = ws.Hyperlinks(kk)
+        Set hs = Nothing
+        Set hs = hl.Shape
+        If Not hs Is Nothing Then If hs.Name = sName Then hl.Delete
+    Next kk
+    Err.Clear
+    ws.Hyperlinks.Add Anchor:=shp, Address:="", SubAddress:=subAddr
+    If Err.Number <> 0 Then
+        SetShapeLink = "リンク追加失敗(" & Err.Number & "): " & Err.Description
+    Else
+        ' 追加後、実際に図形へ結合されたか確認
+        Dim bound As Boolean: bound = False
+        For kk = 1 To ws.Hyperlinks.Count
+            Set hs = Nothing
+            Set hs = ws.Hyperlinks(kk).Shape
+            If Not hs Is Nothing Then
+                If hs.Name = sName Then bound = True: Exit For
+            End If
+        Next kk
+        If Not bound Then
+            Dim ty As String
+            ty = "Type=" & shp.Type
+            ty = ty & " AutoShape=" & shp.AutoShapeType   ' 非オートシェイプではエラー→無視される
+            SetShapeLink = "図形に結合されない (" & ty & ")"
+        End If
+    End If
+    On Error GoTo 0
+End Function
+
+' シート名をA1参照で使うためのエスケープ（アポストロフィを二重化）
+Private Function EscapeSheet(ByVal nm As String) As String
+    EscapeSheet = Replace$(nm, "'", "''")
+End Function
+
+' 対応キー列を用意。別の列にある旧 _Key 列は新しい KEY_COL へ移行し、元の列は解放。
+Private Sub EnsureKeyColumn(ws As Worksheet)
+    Dim c As Long, lastC As Long, lr As Long, rr As Long
+    lastC = ws.Cells(HDR_ROW, ws.Columns.Count).End(xlToLeft).Column
+    If lastC < KEY_COL Then lastC = KEY_COL
+
+    For c = 1 To lastC
+        If c <> KEY_COL Then
+            If CStr(ws.Cells(HDR_ROW, c).Value) = KEY_HEADER Then
+                ' KEY_COL がまだ空なら値を移行、そうでなければ掃除のみ
+                If Len(CStr(ws.Cells(HDR_ROW, KEY_COL).Value)) = 0 Then
+                    lr = ws.Cells(ws.Rows.Count, c).End(xlUp).Row
+                    For rr = 1 To lr
+                        ws.Cells(rr, KEY_COL).Value = ws.Cells(rr, c).Value
+                    Next rr
+                End If
+                ws.Columns(c).ClearContents
+                ws.Columns(c).Hidden = False
+            End If
+        End If
+    Next c
+
+    ws.Cells(HDR_ROW, KEY_COL).Value = KEY_HEADER
+    ws.Columns(KEY_COL).Hidden = True
+End Sub
+
+' Pageシート上の図形名の重複を解消する。
+' 同名の図形が複数あると Shapes(name) が片方しか返さず、もう片方には
+' リンクが張られない（キーが「シート名|図形名」で衝突するため）。
+' 先に出てきた図形が元の名前を保持し、以降の同名図形をユニーク名へ改名する。
+' 改名はファイルに保存され、次回以降も有効（恒久対策）。
+Private Sub EnsureUniqueShapeNames(wb As Workbook)
+    Dim ws As Worksheet, shp As Shape
+    Dim used As Object, nm As String, nn As String, i As Long
+    For Each ws In wb.Worksheets
+        If IsPageSheet(ws) Then
+            Set used = CreateObject("Scripting.Dictionary")
+            used.CompareMode = vbTextCompare       ' Excelの図形名照合は大文字小文字を区別しない
+            For Each shp In ws.Shapes
+                nm = shp.Name
+                If used.Exists(nm) Then
+                    i = 1
+                    Do
+                        nn = nm & "_" & i
+                        i = i + 1
+                    Loop While used.Exists(nn) Or ShapeNameExists(ws, nn)
+                    On Error Resume Next
+                    shp.Name = nn
+                    On Error GoTo 0
+                    nm = shp.Name                  ' 実際に付いた名前を採用（改名失敗時は元名のまま）
+                End If
+                used(nm) = True
+            Next shp
+        End If
+    Next ws
+End Sub
+
+' シート内に指定名の図形が存在するか
+Private Function ShapeNameExists(ws As Worksheet, ByVal nm As String) As Boolean
+    Dim s As Shape
+    On Error Resume Next
+    Set s = ws.Shapes(nm)
+    On Error GoTo 0
+    ShapeNameExists = Not (s Is Nothing)
+End Function
