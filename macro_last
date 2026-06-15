@@ -277,6 +277,7 @@ Private Function ProcessOrdered(wb As Workbook, wsList As Worksheet, arr() As Va
     Dim i As Long, serial As Long, wsName As String, shpName As String, pno As Long
     Dim t As String, content As String, ck2 As String
     Dim mk As String, mlen As Long, newMk As String
+    Dim body As String, cleanBody As String, normBody As String, bodyChanged As Boolean
     Dim mc As Object
     Dim targetWs As Worksheet, targetShp As Shape
     For i = 1 To n
@@ -295,8 +296,22 @@ Private Function ProcessOrdered(wb As Workbook, wsList As Worksheet, arr() As Va
         mk = mc(0).Value
         mlen = Len(mk)
         newMk = "#" & serial & "："
-        content = Trim$(Mid$(t, mlen + 1))
-        If mk <> newMk Then RenumberMarker targetShp, mlen, newMk
+        ' 本文（マーカー以降）を整形：中間の連続空白行を1行に圧縮＋末尾の空白行と末尾の「、」を除去
+        body = Mid$(t, mlen + 1)
+        cleanBody = CleanBubbleBody(body)
+        normBody = NormalizeBreaks(body)
+        bodyChanged = (StrComp(cleanBody, normBody, vbBinaryCompare) <> 0)
+        content = Trim$(cleanBody)
+        If bodyChanged Then
+            ' 本文の文字書式を保持したまま、不要文字だけを範囲削除する
+            If CleanBubbleInPlace(targetShp, mlen) Then
+                If mk <> newMk Then RenumberMarker targetShp, mlen, newMk
+            Else
+                ApplyBubbleText targetShp, newMk, cleanBody   ' 範囲削除不可の環境は丸ごと書き換え（本文書式リセット）
+            End If
+        ElseIf mk <> newMk Then
+            RenumberMarker targetShp, mlen, newMk          ' 本文不変ならマーカーのみ置換（書式保持）
+        End If
 
         k = wsName & "|" & shpName
         seen(k) = True
@@ -488,6 +503,8 @@ Private Function ContentKey(ByVal pageVal As Variant, ByVal text As String) As S
     s = CStr(text)
     s = Replace$(s, vbCr, "")
     s = Replace$(s, vbLf, "")
+    s = Replace$(s, Chr$(11), "")       ' 垂直タブ（図形内の手動改行）。これが残ると複数行の吹き出しで重複追加が起きる
+    s = Replace$(s, Chr$(12), "")       ' その他の制御文字（改ページ等）
     s = Replace$(s, vbTab, "")
     s = Replace$(s, " ", "")
     s = Replace$(s, "　", "")          ' 全角スペース
@@ -495,6 +512,7 @@ Private Function ContentKey(ByVal pageVal As Variant, ByVal text As String) As S
     s = StrConv(s, vbNarrow)            ' 全角英数カナ→半角（環境により失敗しても無視）
     On Error GoTo 0
     s = LCase$(s)
+    s = StripTrailingReadten(s)         ' 末尾の「、」「，」は無視（本文整形で吹き出し側が消えるため同一視する）
     ContentKey = CStr(pageVal) & "|" & s
 End Function
 
@@ -583,6 +601,229 @@ Private Sub RenumberMarker(shp As Shape, ByVal oldLen As Long, ByVal newMarker A
     End If
     On Error GoTo 0
 End Sub
+
+' 本文（マーカー以降）から不要文字だけを範囲削除し、残った文字の書式を保持する。
+' 文字列長と Characters 数が一致しない環境（CRLF等で1:1にならない）では False を返し、
+' 呼び出し側で丸ごと書き換えにフォールバックさせる。
+Private Function CleanBubbleInPlace(shp As Shape, ByVal mlen As Long) As Boolean
+    Dim tr As Object
+    On Error Resume Next
+    Set tr = shp.TextFrame2.TextRange
+    On Error GoTo 0
+    If tr Is Nothing Then CleanBubbleInPlace = False: Exit Function
+
+    Dim raw As String, cnt As Long
+    On Error Resume Next
+    raw = tr.Text
+    cnt = tr.Characters.Count
+    On Error GoTo 0
+    If Len(raw) <> cnt Then CleanBubbleInPlace = False: Exit Function   ' インデックス不一致→フォールバック
+    If mlen >= Len(raw) Then CleanBubbleInPlace = True: Exit Function    ' 本文なし
+
+    Dim B As String: B = Mid$(raw, mlen + 1)
+    Dim Lb As Long: Lb = Len(B)
+
+    ' --- 本文を行に分解（vbCr / vbLf を各1文字の区切りとして扱う） ---
+    Dim sIdx() As Long, lenArr() As Long, blankArr() As Boolean, keep() As Boolean
+    ReDim sIdx(0 To Lb): ReDim lenArr(0 To Lb)
+    Dim p As Long, curStart As Long, curLen As Long, idx As Long, ch As String
+    p = -1: curStart = 1: curLen = 0
+    For idx = 1 To Lb
+        ch = Mid$(B, idx, 1)
+        If ch = vbCr Or ch = vbLf Then
+            p = p + 1: sIdx(p) = curStart: lenArr(p) = curLen
+            curStart = idx + 1: curLen = 0
+        Else
+            curLen = curLen + 1
+        End If
+    Next idx
+    p = p + 1: sIdx(p) = curStart: lenArr(p) = curLen     ' 最終行（lenは0もあり得る）
+
+    ReDim blankArr(0 To p): ReDim keep(0 To p)
+    Dim k As Long
+    For k = 0 To p
+        blankArr(k) = (Len(TrimSpaces(Mid$(B, sIdx(k), lenArr(k)))) = 0)
+    Next k
+
+    ' --- 連続空白行は最初の1つだけ残す ---
+    Dim prevBlank As Boolean: prevBlank = False
+    For k = 0 To p
+        If blankArr(k) Then
+            If Not prevBlank Then
+                keep(k) = True: prevBlank = True
+            Else
+                keep(k) = False
+            End If
+        Else
+            keep(k) = True: prevBlank = False
+        End If
+    Next k
+
+    ' --- 末尾の空白行・「、」だけの行を落とし、最後の本文行の末尾「、」を削る文字数を決める ---
+    Dim trimN As Long: trimN = 0
+    Dim lastKeep As Long, lc As String, stripped As String
+    Do
+        lastKeep = -1
+        For k = p To 0 Step -1
+            If keep(k) Then lastKeep = k: Exit For
+        Next k
+        If lastKeep < 0 Then Exit Do
+        lc = Mid$(B, sIdx(lastKeep), lenArr(lastKeep))
+        If Len(TrimSpaces(lc)) = 0 Then
+            keep(lastKeep) = False
+        Else
+            stripped = StripTrailingReadten(lc)
+            If Len(stripped) = 0 Then
+                keep(lastKeep) = False
+            Else
+                trimN = Len(lc) - Len(stripped)
+                Exit Do
+            End If
+        End If
+    Loop
+
+    ' --- 残す文字のマスクを作る（空白行はスペースも捨てて区切りだけ残す） ---
+    Dim keepCh() As Boolean: ReDim keepCh(1 To Lb)
+    Dim eff As Long, j As Long, kk As Long, hasAfter As Boolean
+    For k = 0 To p
+        If keep(k) Then
+            eff = lenArr(k)
+            If blankArr(k) Then eff = 0
+            If k = lastKeep Then eff = lenArr(k) - trimN
+            For j = 0 To eff - 1
+                keepCh(sIdx(k) + j) = True
+            Next j
+            If k < p Then
+                hasAfter = False
+                For kk = k + 1 To p
+                    If keep(kk) Then hasAfter = True: Exit For
+                Next kk
+                If hasAfter Then keepCh(sIdx(k) + lenArr(k)) = True   ' 行間の区切りを1つだけ残す
+            End If
+        End If
+    Next k
+
+    ' --- 残さない文字を連続範囲にまとめ、末尾側から削除（位置ズレ防止） ---
+    Dim runStart As Long, runEnd As Long
+    idx = Lb
+    Do While idx >= 1
+        If Not keepCh(idx) Then
+            runEnd = idx
+            Do While idx >= 1
+                If keepCh(idx) Then Exit Do
+                idx = idx - 1
+            Loop
+            runStart = idx + 1
+            On Error Resume Next
+            tr.Characters(mlen + runStart, runEnd - runStart + 1).Delete
+            On Error GoTo 0
+        Else
+            idx = idx - 1
+        End If
+    Loop
+
+    CleanBubbleInPlace = True
+End Function
+
+' 吹き出しのテキストを「マーカー＋整形済み本文」で丸ごと書き換える（フォールバック用）。
+' 本文側の文字書式はリセットされる。
+Private Sub ApplyBubbleText(shp As Shape, ByVal marker As String, ByVal body As String)
+    Dim full As String: full = marker & body
+    On Error Resume Next
+    shp.TextFrame2.TextRange.Text = full
+    If Err.Number <> 0 Then
+        Err.Clear
+        shp.TextFrame.Characters.Text = full      ' フォールバック：旧 TextFrame
+    End If
+    On Error GoTo 0
+End Sub
+
+' 改行コードを vbLf に統一（vbCrLf / vbCr / 手動改行 Chr(11) を吸収）。
+' ※書き戻しは必ず単一 vbLf。vbCrLf のまま書くと空行が二重に増える環境があるため。
+Private Function NormalizeBreaks(ByVal s As String) As String
+    s = Replace$(s, vbCrLf, vbLf)
+    s = Replace$(s, vbCr, vbLf)
+    s = Replace$(s, Chr$(11), vbLf)
+    NormalizeBreaks = s
+End Function
+
+' 本文整形：
+'   1) 中間の連続空白行は 1 行に圧縮
+'   2) 末尾の空白行を除去
+'   3) 末尾の「、」「，」（と直後の空白）を除去（「、」だけの最終行も消える）
+Private Function CleanBubbleBody(ByVal s As String) As String
+    Dim lines() As String, outArr() As String
+    Dim i As Long, m As Long
+    Dim ln As String, core As String, last As String, res As String
+    Dim prevBlank As Boolean
+
+    lines = Split(NormalizeBreaks(s), vbLf)
+    ReDim outArr(0 To UBound(lines))
+    m = -1: prevBlank = False
+    For i = 0 To UBound(lines)
+        ln = lines(i)
+        core = TrimSpaces(ln)
+        If Len(core) = 0 Then
+            If Not prevBlank Then        ' 連続空白行は最初の1つだけ残す
+                m = m + 1: outArr(m) = ""
+                prevBlank = True
+            End If
+        Else
+            m = m + 1: outArr(m) = ln
+            prevBlank = False
+        End If
+    Next i
+
+    ' 末尾の空白行を除去
+    Do While m >= 0
+        If Len(TrimSpaces(outArr(m))) = 0 Then m = m - 1 Else Exit Do
+    Loop
+
+    ' 末尾の「、」「，」を除去し、空になったら更に末尾空白行を落とす
+    If m >= 0 Then
+        last = StripTrailingReadten(outArr(m))
+        outArr(m) = last
+        Do While m >= 0
+            If Len(TrimSpaces(outArr(m))) = 0 Then m = m - 1 Else Exit Do
+        Loop
+    End If
+
+    For i = 0 To m
+        If i > 0 Then res = res & vbLf
+        res = res & outArr(i)
+    Next i
+    CleanBubbleBody = res
+End Function
+
+' 前後の半角/全角スペースとタブを除去
+Private Function TrimSpaces(ByVal s As String) As String
+    Dim r As String, c As String
+    r = Replace$(s, vbTab, " ")
+    Do While Len(r) > 0
+        c = Left$(r, 1)
+        If c = " " Or c = "　" Then r = Mid$(r, 2) Else Exit Do
+    Loop
+    Do While Len(r) > 0
+        c = Right$(r, 1)
+        If c = " " Or c = "　" Then r = Left$(r, Len(r) - 1) Else Exit Do
+    Loop
+    TrimSpaces = r
+End Function
+
+' 末尾の「、」「，」と、その直後にある空白を繰り返し除去
+Private Function StripTrailingReadten(ByVal s As String) As String
+    Dim r As String, c As String
+    r = s
+    Do While Len(r) > 0
+        c = Right$(r, 1)
+        If c = "、" Or c = "，" Or c = " " Or c = "　" Or c = vbTab Then
+            r = Left$(r, Len(r) - 1)
+        Else
+            Exit Do
+        End If
+    Loop
+    StripTrailingReadten = r
+End Function
 
 ' 一覧セルにシート内ジャンプのハイパーリンクを設定
 Private Sub SetCellLink(ws As Worksheet, ByVal r As Long, ByVal c As Long, _
