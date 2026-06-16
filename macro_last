@@ -343,7 +343,21 @@ P1Next:
     ' --- フェーズ2：重複(頁+本文)行の集約。キー行を残し、未キーの重複行は削除 ---
     CollapseDuplicates wsList
 
-    ' --- フェーズ3：削除で行が動くため、キーで行を引き直してリンク再設定 ---
+    ' --- フェーズ2.5：一覧の行を吹き出しの通番順に並べ替え（A列の # を #x に一致させる） ---
+    ' keyList（i→Array(wsName,shpName,key)）から「キー→吹き出し通番」辞書を作って渡す。
+    ' リンクを貼る前に並べ替えるので、フェーズ3は並べ替え後の最終アドレスでリンクを張る。
+    Dim serialOfKey As Object: Set serialOfKey = CreateObject("Scripting.Dictionary")
+    Dim si As Long, sInfo As Variant, sKey As String
+    For si = 1 To n
+        If keyList.Exists(si) Then
+            sInfo = keyList(si)
+            sKey = sInfo(2)
+            If Not serialOfKey.Exists(sKey) Then serialOfKey.Add sKey, si
+        End If
+    Next si
+    ReorderListRows wsList, serialOfKey
+
+    ' --- フェーズ3：削除・並べ替えで行が動くため、キーで行を引き直してリンク再設定 ---
     Dim keymap As Object: Set keymap = BuildKeyMap(wsList)
     Dim linkFail As Collection: Set linkFail = New Collection
     Dim info As Variant, anchor As String, emsg As String
@@ -378,7 +392,8 @@ P1Next:
         End If
     Next i
 
-    ' --- 一覧の # は「一覧内の項番」。行順に 1,2,3… を再採番。孤立行は # を着色 ---
+    ' --- 一覧の # を行順に 1,2,3… で再採番。フェーズ2.5で吹き出し順に並べたので、
+    '     対応吹き出しのある行は # が吹き出しの #x と一致する。孤立行は末尾に並び # を着色 ---
     Dim seq As Long: seq = 0
     Dim g As String
     lastRow = LastDataRow(wsList)
@@ -491,6 +506,47 @@ Private Function BuildKeyMap(ws As Worksheet) As Object
     Next r
     Set BuildKeyMap = d
 End Function
+
+' 一覧の行を吹き出しの通番順に物理的に並べ替える（A列の # を #x に一致させる土台）。
+'   serialOfKey : キー(シート名|図形名) → 吹き出しの通番
+' 対応吹き出しのある行はその通番の昇順で上に並び、対応の無い行（孤立行・手入力のみ・空行）は
+' 現状の並び順を保ったまま末尾へ送る。D/E/F の手入力列やセルのハイパーリンクも行ごと移動する。
+' ※リンク（吹き出し→一覧セル）を貼る前に呼ぶこと。並べ替え後の最終アドレスでリンクを張るため。
+Private Sub ReorderListRows(ws As Worksheet, serialOfKey As Object)
+    Dim lastRow As Long: lastRow = LastDataRow(ws)
+    If lastRow <= FIRST_DATA_ROW Then Exit Sub      ' 並べ替え対象が1行以下なら不要
+
+    ' 使用範囲の右端の外側に一時ソートキー列を確保（既存データ列を上書きしない）
+    Dim lastCol As Long
+    lastCol = ws.UsedRange.Column + ws.UsedRange.Columns.Count - 1
+    If lastCol < KEY_COL Then lastCol = KEY_COL
+    Dim tmpCol As Long: tmpCol = lastCol + 1
+
+    Const ORPHAN_BASE As Long = 1000000             ' 孤立行は末尾へ（現状順維持のため元行番号を加算）
+    Dim r As Long, k As String, ord As Long
+    For r = FIRST_DATA_ROW To lastRow
+        k = CStr(ws.Cells(r, KEY_COL).Value)
+        If Len(k) > 0 And serialOfKey.Exists(k) Then
+            ord = serialOfKey(k)                    ' 対応吹き出しの通番
+        Else
+            ord = ORPHAN_BASE + r                   ' 孤立行・空行：末尾へ（元の並び順を維持）
+        End If
+        ws.Cells(r, tmpCol).Value = ord
+    Next r
+
+    ' 一時キー列の昇順で、全列(A〜tmpCol)を行ごとまとめて並べ替え
+    With ws.Sort
+        .SortFields.Clear
+        .SortFields.Add Key:=ws.Range(ws.Cells(FIRST_DATA_ROW, tmpCol), ws.Cells(lastRow, tmpCol)), _
+                        SortOn:=xlSortOnValues, Order:=xlAscending, DataOption:=xlSortNormal
+        .SetRange ws.Range(ws.Cells(FIRST_DATA_ROW, 1), ws.Cells(lastRow, tmpCol))
+        .Header = xlNo
+        .MatchCase = False
+        .Orientation = xlTopToBottom
+        .Apply
+    End With
+    ws.Columns(tmpCol).ClearContents
+End Sub
 
 
 '======================================================================
