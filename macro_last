@@ -440,13 +440,17 @@ P1Next:
     ProcessOrdered = rep
 End Function
 
-' (頁+本文)が重複する行を集約。キー行を生かし、未キーの重複行は D/E/F をマージ後に削除。
-' キー同士の重複（別シェイプの同一文言）は両方残す。
+' (頁+本文)が重複する行を集約。キー行を生かし、未キーの重複行はマクロ管理列以外の
+' 手入力をマージ後に削除。キー同士の重複（別シェイプの同一文言）は両方残す。
 Private Sub CollapseDuplicates(ws As Worksheet)
     Dim grp As Object: Set grp = CreateObject("Scripting.Dictionary")  ' ck -> survivor row
     Dim delRows As Collection: Set delRows = New Collection
     Dim lastRow As Long, r As Long, g As String, k As String, ck As String
     Dim sRow As Long, sKey As String
+    ' マージ対象の右端列：使用範囲の右端（最低でも D/E/F を含む 6 列目まで）
+    Dim lastCol As Long
+    lastCol = ws.UsedRange.Column + ws.UsedRange.Columns.Count - 1
+    If lastCol < 6 Then lastCol = 6
     lastRow = LastDataRow(ws)
     For r = FIRST_DATA_ROW To lastRow
         g = Trim$(CStr(ws.Cells(r, COL_ITEM).Value))
@@ -458,11 +462,11 @@ Private Sub CollapseDuplicates(ws As Worksheet)
             Else
                 sRow = grp(ck): sKey = CStr(ws.Cells(sRow, KEY_COL).Value)
                 If Len(k) > 0 And Len(sKey) = 0 Then
-                    MergeManual ws, r, sRow          ' キー行を生存させ、未キーの旧survivorを削除
+                    MergeManual ws, r, sRow, lastCol   ' キー行を生存させ、未キーの旧survivorを削除
                     delRows.Add sRow
                     grp(ck) = r
                 ElseIf Len(k) = 0 Then
-                    MergeManual ws, sRow, r          ' 未キーの重複行を削除
+                    MergeManual ws, sRow, r, lastCol   ' 未キーの重複行を削除
                     delRows.Add r
                 ' （両方キー有り＝別シェイプの同一文言は何もしない＝両方残す）
                 End If
@@ -485,15 +489,25 @@ Private Sub CollapseDuplicates(ws As Worksheet)
     Next a
 End Sub
 
-' 手入力列 D/E/F を src から dst へ（dst が空のときだけ）コピー
-Private Sub MergeManual(ws As Worksheet, ByVal dstRow As Long, ByVal srcRow As Long)
+' 手入力列（マクロ管理列 A/B/C/G/_Key 以外）を src から dst へ（dst が空のときだけ）コピー。
+' D/E/F に限らず、H 列以降のユーザー独自列も lastCol まで対象にする。
+Private Sub MergeManual(ws As Worksheet, ByVal dstRow As Long, ByVal srcRow As Long, ByVal lastCol As Long)
     Dim c As Long
-    For c = 4 To 6
-        If Len(CStr(ws.Cells(dstRow, c).Value)) = 0 Then
-            ws.Cells(dstRow, c).Value = ws.Cells(srcRow, c).Value
+    For c = 4 To lastCol
+        If Not IsManagedColumn(c) Then
+            If Len(CStr(ws.Cells(dstRow, c).Value)) = 0 Then
+                ws.Cells(dstRow, c).Value = ws.Cells(srcRow, c).Value
+            End If
         End If
     Next c
 End Sub
+
+' マクロが値を生成・上書きする管理列か（A=#, B=頁, C=リンク, G=確認事項, _Key）。
+' これら以外はユーザーの手入力列とみなし、重複集約時に保持・マージする。
+Private Function IsManagedColumn(ByVal c As Long) As Boolean
+    IsManagedColumn = (c = COL_NO Or c = COL_PAGE Or c = COL_LINK _
+                       Or c = COL_ITEM Or c = KEY_COL)
+End Function
 
 ' キー→行 の対応表を作る（行削除後の引き直し用）
 Private Function BuildKeyMap(ws As Worksheet) As Object
