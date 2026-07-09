@@ -161,6 +161,24 @@
   .check{display:flex;flex-direction:column;gap:.35rem;margin-top:.5rem;font-size:.82rem}
   .check .ok::before{content:"✓ ";color:var(--good);font-weight:800}
   .check .ng::before{content:"✕ ";color:var(--bad);font-weight:800}
+  .track{display:flex;gap:0;margin-top:.7rem;flex-wrap:wrap}
+  .tnode{flex:1;min-width:105px;text-align:center;position:relative;padding-top:1.5rem;font-size:.73rem;color:var(--ink-2)}
+  .tnode::before{content:"";position:absolute;top:.55rem;left:50%;width:100%;height:2px;background:var(--line)}
+  .tnode:last-child::before{display:none}
+  .tnode i{position:absolute;top:.15rem;left:calc(50% - .42rem);width:.85rem;height:.85rem;border-radius:50%;
+    background:var(--panel);border:2.5px solid var(--line);z-index:1}
+  .tnode.done i{background:var(--good);border-color:var(--good)}
+  .tnode.done::before{background:var(--good)}
+  .tnode.now i{background:var(--panel);border-color:var(--warn)}
+  .tnode.now{color:var(--warn);font-weight:700}
+  .tnode small{display:block;font-size:.66rem;font-weight:400;color:var(--ink-2)}
+  .diff{display:grid;grid-template-columns:1fr auto 1fr;gap:.9rem;align-items:stretch;margin-top:.7rem}
+  @media (max-width:720px){.diff{grid-template-columns:1fr}}
+  .diffbox{border:1px solid var(--line);border-radius:8px;padding:.85rem 1rem}
+  .diffbox h5{margin:0 0 .4rem;font-size:.74rem;color:var(--ink-2);letter-spacing:.04em}
+  .diffbox .amt{font-size:1.25rem;font-weight:800;font-variant-numeric:tabular-nums}
+  .diffbox.new{border-color:var(--gov)}
+  .diffarrow{align-self:center;color:var(--ink-2);font-size:1.2rem;text-align:center}
   .tabs{display:flex;gap:0;border-bottom:2px solid var(--line);margin:.9rem 0 0;font-size:.82rem}
   .tab{padding:.4rem 1.1rem;color:var(--ink-2);border-bottom:2.5px solid transparent;margin-bottom:-2px}
   .tab.on{color:var(--gov);border-bottom-color:var(--gov);font-weight:700}
@@ -185,7 +203,9 @@
         <div class="grp">内部業務画面(G系)</div>
         <a href="#g1">G-1 業務ダッシュボード</a><br>
         <a href="#g3">G-3 申告審査</a><br>
+        <a href="#g4">G-4 賦課金額決定・更正(決裁ワークフロー)</a><br>
         <a href="#g5">G-5 収納状況管理(経産省連携)</a><br>
+        <a href="#g6">G-6 還付審査・支払管理</a><br>
         <a href="#g7">G-7 マスタ管理(単価・係数)</a>
       </div>
     </div>
@@ -317,7 +337,7 @@
               <tbody>
                 <tr><td>申告審査</td><td>〇〇石油</td><td>LV-2028-000482</td><td>2028-08-05</td><td><span class="pill p-back">突合NG</span></td><td><a class="rowlink" href="#g3">審査へ</a></td></tr>
                 <tr><td>無申告</td><td>△△エナジー</td><td>2028年度6月分</td><td>期限超過 5日</td><td><span class="pill p-back">決定検討</span></td><td><a class="rowlink" href="#">決定へ</a></td></tr>
-                <tr><td>還付審査</td><td>□□商事</td><td>RF-2029-0087</td><td>2028-08-10</td><td><span class="pill p-review">審査中</span></td><td><a class="rowlink" href="#">審査へ</a></td></tr>
+                <tr><td>還付審査</td><td>〇〇石油</td><td>RF-2029-0087</td><td>2028-11-15</td><td><span class="pill p-review">審査中</span></td><td><a class="rowlink" href="#g6">審査へ</a></td></tr>
                 <tr><td>収納</td><td>◇◇ガス</td><td>連携エラー 4件</td><td>本日</td><td><span class="pill p-review">要確認</span></td><td><a class="rowlink" href="#g5">取込結果へ</a></td></tr>
               </tbody>
             </table>
@@ -379,6 +399,62 @@
     </div>
   </section>
 
+  <!-- ============ G-4 決定・更正 ============ -->
+  <section class="screen gov-t" id="g4">
+    <div class="screen-head"><span class="screen-tag gov">G-4</span><h2>賦課金額決定・更正(決裁ワークフロー)</h2><span class="biz">対応業務 C-1・C-2・C-3|入力 F04ほか</span></div>
+    <p class="screen-note">賦課金額を動かす処分(決定・更正)は職員単独で確定させず、起案→審査→承認の多段決裁を通します。金額により決裁権限者が変わる閾値ルールを画面に明示。減額更正は確定と同時に還付(G-6)へ自動連携し、増額更正は賦課決定情報(IF-1o)として経産省へ連携します。</p>
+    <div class="frame">
+      <div class="chrome"><span class="dots"><i></i><i></i><i></i></span><span class="urlbar">https://ops.gxa.go.jp/levy/assessment/LV-2028-000482/correction</span></div>
+      <div class="appbar gov"><span class="logo">賦課金管理システム<small>GX推進機構 内部業務</small></span><span class="user">徴収部 佐藤(審査担当)</span></div>
+      <div class="layout">
+        <nav class="nav">
+          <a href="#">ダッシュボード</a>
+          <a href="#">事業者管理</a>
+          <a href="#">申告審査</a>
+          <a href="#" class="on">決定・更正</a>
+          <a href="#">収納状況</a>
+          <a href="#">還付審査・支払</a>
+          <a href="#">マスタ管理</a>
+        </nav>
+        <div class="main">
+          <p class="crumb">決定・更正 &gt; LV-2028-000482 &gt; 減額更正(起案)</p>
+          <h3>賦課金額の更正:〇〇石油株式会社(2028年度 6月分)</h3>
+          <div class="tabs"><span class="tab on">更正(請求に基づく)</span><span class="tab">更正(職権)</span><span class="tab">決定(無申告)</span></div>
+          <h4>更正事由</h4>
+          <p style="font-size:.85rem;margin:.2rem 0">更正の請求 <a class="rowlink" href="#g6">RF-2029-0087</a> に基づく減額更正(理由区分: CO₂換算量の計算誤り/LNG重複計上 4,834t)</p>
+          <div class="diff">
+            <div class="diffbox">
+              <h5>当初の賦課金額(確定済)</h5>
+              <div class="amt">214,000,000 円</div>
+              <span class="hint">CO₂量 85,600 t-CO₂|納付済(2028-08-09)</span>
+            </div>
+            <div class="diffarrow">→</div>
+            <div class="diffbox new">
+              <h5>更正後の賦課金額</h5>
+              <div class="amt">201,915,000 円</div>
+              <span class="hint">CO₂量 80,766 t-CO₂|差額 ▲12,085,000円(過納 → 還付へ)</span>
+            </div>
+          </div>
+          <h4>決裁ルート(減額更正 1億円未満:部長専決)</h4>
+          <div class="track">
+            <span class="tnode done"><i></i>起案<small>佐藤(審査担当)2028-10-20</small></span>
+            <span class="tnode done"><i></i>審査<small>田中 課長 2028-10-22</small></span>
+            <span class="tnode now"><i></i>承認<small>伊藤 部長(決裁待ち)</small></span>
+            <span class="tnode"><i></i>更正確定・通知書交付<small>C-3 更正通知書</small></span>
+            <span class="tnode"><i></i>後続連携<small>還付(G-6)/IF-1o変更連携</small></span>
+          </div>
+          <div class="alert info"><b>ℹ</b><span>決裁権限(仮): 5百万円未満=課長専決/1億円未満=部長専決/1億円以上=理事決裁。増額更正・職権決定は不利益処分のため金額によらず部長以上。閾値はパラメータ管理(6.3-6)。</span></div>
+          <div class="alert warn"><b>⚠</b><span>本件は納付済のため、更正確定と同時に過納額 12,085,000円が還付ワークリスト(G-6)へ自動起票されます。更正通知書の交付日が不服申立期間の起算日になります。</span></div>
+          <div class="actions">
+            <button class="btn">承認(部長)</button>
+            <button class="btn ghost">差戻し(起案者へ)</button>
+            <button class="btn ghost">通知書プレビュー</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <!-- ============ G-5 収納状況 ============ -->
   <section class="screen gov-t" id="g5">
     <div class="screen-head"><span class="screen-tag gov">G-5</span><h2>収納状況管理(経産省連携)</h2><span class="biz">対応業務 D-1・D-2|入力 F06</span></div>
@@ -418,6 +494,65 @@
             </table>
           </div>
           <div class="alert info"><b>ℹ</b><span>督促状の発行は本システム対象外です。未納案件は滞納整理(担当部門)へ連携し、延滞金は納付完了情報の納付日をもって確定計算します。連携エラー4件:申告番号不一致(3件)、連携ID重複(1件)。</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ G-6 還付審査・支払 ============ -->
+  <section class="screen gov-t" id="g6">
+    <div class="screen-head"><span class="screen-tag gov">G-6</span><h2>還付審査・支払管理</h2><span class="biz">対応業務 E-1〜E-3|入力 F04・F05・F07</span></div>
+    <p class="screen-note">還付は「審査 → 支払決定(決裁) → 振込データ作成 → 支払結果」まで一気通貫。支払前チェックの芯は①未納債権への充当判定と②還付加算金の自動計算。振込は全銀フォーマット(IF-5)で機構の取引銀行へ、返金を経産省経由にしない責任分界(IF仕様書 §4.3)を前提にしています。</p>
+    <div class="frame">
+      <div class="chrome"><span class="dots"><i></i><i></i><i></i></span><span class="urlbar">https://ops.gxa.go.jp/levy/refund/RF-2029-0087</span></div>
+      <div class="appbar gov"><span class="logo">賦課金管理システム<small>GX推進機構 内部業務</small></span><span class="user">徴収部 鈴木(還付担当)</span></div>
+      <div class="layout">
+        <nav class="nav">
+          <a href="#">ダッシュボード</a>
+          <a href="#">事業者管理</a>
+          <a href="#">申告審査</a>
+          <a href="#">決定・更正</a>
+          <a href="#">収納状況</a>
+          <a href="#" class="on">還付審査・支払</a>
+          <a href="#">マスタ管理</a>
+        </nav>
+        <div class="main">
+          <p class="crumb">還付審査・支払 &gt; RF-2029-0087(過納還付)</p>
+          <h3>還付審査:〇〇石油株式会社|過納還付(更正の請求)</h3>
+          <h4>前提処分の状態</h4>
+          <div class="check">
+            <span class="ok">減額更正 確定済(<a class="rowlink" href="#g4">G-4</a>|更正通知書 2028-11-01 交付)</span>
+            <span class="ok">対象申告は納付済(納付日 2028-08-09|経産省連携 消込済)</span>
+          </div>
+          <h4>支払前チェック</h4>
+          <div class="check">
+            <span class="ok">未納債権への充当判定: 当該事業者に未納・延滞金なし → 全額還付</span>
+            <span class="ok">還付先口座: 届出口座と一致(〇〇銀行 本店 普通 1234567 ｶ)ﾏﾙﾏﾙｾｷﾕ)</span>
+            <span class="ok">二重支払チェック: 同一更正に対する既払いなし</span>
+          </div>
+          <div class="calc" style="border-color:var(--gov);background:var(--gov-soft)">
+            <h5 style="color:var(--gov)">還付額の確定計算</h5>
+            <table>
+              <tr><td>過納額(減額更正による)</td><td class="num"><b>12,085,000 円</b></td></tr>
+              <tr><td>還付加算金(自動計算)</td><td class="num">29,203 円 <span class="hint">= 12,085,000 × 0.9%(仮) × 98日/365(起算 2028-08-10 〜 支払決定 2028-11-15)</span></td></tr>
+              <tr class="total"><td>支払額合計</td><td class="num">12,114,203 円</td></tr>
+            </table>
+            <p class="formula">加算金の利率・起算日ルールは政省令待ちのパラメータ(マスタ管理)。用途還付は原則加算金なしの想定。</p>
+          </div>
+          <h4>支払決裁・振込</h4>
+          <div class="track">
+            <span class="tnode done"><i></i>還付起票<small>減額更正確定により自動</small></span>
+            <span class="tnode done"><i></i>審査<small>鈴木(還付担当)2028-11-10</small></span>
+            <span class="tnode now"><i></i>支払決定<small>伊藤 部長(決裁待ち)</small></span>
+            <span class="tnode"><i></i>振込データ作成<small>全銀フォーマット(IF-5)</small></span>
+            <span class="tnode"><i></i>支払結果確認<small>不能時は口座再確認へ</small></span>
+          </div>
+          <div class="alert warn"><b>⚠</b><span>収納取消(組戻し)レコードが後から連携された場合、本還付は自動停止しアラートされます(IF仕様書 §2.4)。支払実行後の取消は回収事案として個別管理。</span></div>
+          <div class="actions">
+            <button class="btn">支払決定(決裁へ)</button>
+            <button class="btn ghost">還付通知書プレビュー</button>
+            <button class="btn danger">審査差戻し</button>
+          </div>
         </div>
       </div>
     </div>
