@@ -202,11 +202,13 @@
       <div>
         <div class="grp">内部業務画面(G系)</div>
         <a href="#g1">G-1 業務ダッシュボード</a><br>
+        <a href="#g2">G-2 事業者管理</a><br>
         <a href="#g3">G-3 申告審査</a><br>
         <a href="#g4">G-4 賦課金額決定・更正(決裁ワークフロー)</a><br>
         <a href="#g5">G-5 収納状況管理(経産省連携)</a><br>
         <a href="#g6">G-6 還付審査・支払管理</a><br>
-        <a href="#g7">G-7 マスタ管理(単価・係数)</a>
+        <a href="#g7">G-7 マスタ管理(単価・係数)</a><br>
+        <a href="#g8">G-8 延納審査・担保台帳【候補】</a>
       </div>
     </div>
   </div>
@@ -342,6 +344,58 @@
               </tbody>
             </table>
           </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ G-2 事業者管理 ============ -->
+  <section class="screen gov-t" id="g2">
+    <div class="screen-head"><span class="screen-tag gov">G-2</span><h2>事業者管理</h2><span class="biz">対応業務 A-1・A-2|入力 F01</span></div>
+    <p class="screen-note">届出(F01)の審査と事業者マスタの照会・履歴管理。法人番号は国税庁API(IF-3)で実在性を自動照合。還付先口座の変更履歴は還付詐欺対策として重点管理項目にしています(変更直後の還付は追加確認)。</p>
+    <div class="frame">
+      <div class="chrome"><span class="dots"><i></i><i></i><i></i></span><span class="urlbar">https://ops.gxa.go.jp/levy/operators/F-102394</span></div>
+      <div class="appbar gov"><span class="logo">賦課金管理システム<small>GX推進機構 内部業務</small></span><span class="user">徴収部 高橋(事業者担当)</span></div>
+      <div class="layout">
+        <nav class="nav">
+          <a href="#">ダッシュボード</a>
+          <a href="#" class="on">事業者管理</a>
+          <a href="#">申告審査</a>
+          <a href="#">決定・更正</a>
+          <a href="#">収納状況</a>
+          <a href="#">還付審査・支払</a>
+          <a href="#">マスタ管理</a>
+        </nav>
+        <div class="main">
+          <p class="crumb">事業者管理 &gt; 検索結果 &gt; F-102394</p>
+          <h3>事業者詳細:〇〇石油株式会社(F-102394)</h3>
+          <div class="tabs"><span class="tab on">基本情報</span><span class="tab">届出履歴</span><span class="tab">申告・収納状況</span><span class="tab">還付先口座</span><span class="tab">関連書類</span></div>
+          <h4>基本情報</h4>
+          <div class="tblwrap">
+            <table>
+              <tbody>
+                <tr><th style="width:180px">状態</th><td><span class="pill p-done">有効</span>(届出受理 2027-11-15)</td></tr>
+                <tr><th>法人番号</th><td>1234567890123 <span class="pill p-done">国税庁API照合済</span></td></tr>
+                <tr><th>事業区分</th><td>輸入</td></tr>
+                <tr><th>取扱燃料種別</th><td>原油、石油製品(C重油)、LNG</td></tr>
+                <tr><th>還付先口座</th><td>〇〇銀行 本店 普通 1234567 ｶ)ﾏﾙﾏﾙｾｷﾕ <span class="hint">(最終変更 2027-11-15|変更後90日以内の還付は追加確認)</span></td></tr>
+                <tr><th>担当・連絡先</th><td>経理部 賦課金担当 03-XXXX-XXXX</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <h4>届出履歴・審査待ち</h4>
+          <div class="tblwrap">
+            <table>
+              <thead><tr><th>受付番号</th><th>届出区分</th><th>受付日</th><th>変更内容</th><th>状態</th><th></th></tr></thead>
+              <tbody>
+                <tr><td>NT-2029-0044</td><td>変更</td><td>2029-04-01</td><td>還付先口座の変更</td><td><span class="pill p-review">審査待ち</span></td><td><a class="rowlink" href="#">審査する</a></td></tr>
+                <tr><td>NT-2028-0311</td><td>変更</td><td>2028-10-02</td><td>取扱燃料種別の追加(LNG)</td><td><span class="pill p-done">受理</span></td><td><a class="rowlink" href="#">詳細</a></td></tr>
+                <tr><td>NT-2027-0102</td><td>新規</td><td>2027-11-01</td><td>—</td><td><span class="pill p-done">受理</span></td><td><a class="rowlink" href="#">詳細</a></td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="alert warn"><b>⚠</b><span>還付先口座の変更届出が審査待ちです。受理前に還付支払(G-6)を実行する場合は旧口座が使用されます。名義照合(カナ一致)を確認のうえ受理してください。</span></div>
+          <div class="actions"><button class="btn">届出を審査する</button><button class="btn ghost">履歴をエクスポート</button></div>
         </div>
       </div>
     </div>
@@ -602,6 +656,70 @@
             </table>
           </div>
           <div class="alert warn"><b>⚠</b><span>係数・単価の改定は適用期間で世代管理し、過年度分の還付計算では「納付年度時点の値」を参照します。</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ G-8 延納審査・担保台帳 ============ -->
+  <section class="screen gov-t" id="g8">
+    <div class="screen-head"><span class="screen-tag gov">G-8</span><h2>延納審査・担保台帳【候補】</h2><span class="biz">対応業務 D-3・D-4|入力 F08・F09</span></div>
+    <p class="screen-note">政省令で延納・担保が確定した場合の候補画面。石油石炭税法18条(申請+税額相当の担保、最長2か月)を下敷きに、①延納審査(担保余力チェック込み)と②担保台帳(個別/包括、充当・解除の履歴)の2タブ構成。延納許可は納期限を上書きし、延滞金起算と消込期限判定(G-5)・IF-1oの納期限連携に波及します。</p>
+    <div class="frame">
+      <div class="chrome"><span class="dots"><i></i><i></i><i></i></span><span class="urlbar">https://ops.gxa.go.jp/levy/deferral/ENN-2028-0009</span></div>
+      <div class="appbar gov"><span class="logo">賦課金管理システム<small>GX推進機構 内部業務</small></span><span class="user">徴収部 田中(収納企画)</span></div>
+      <div class="layout">
+        <nav class="nav">
+          <a href="#">ダッシュボード</a>
+          <a href="#">事業者管理</a>
+          <a href="#">申告審査</a>
+          <a href="#">決定・更正</a>
+          <a href="#">収納状況</a>
+          <a href="#">還付審査・支払</a>
+          <a href="#" class="on">延納・担保</a>
+          <a href="#">マスタ管理</a>
+        </nav>
+        <div class="main">
+          <p class="crumb">延納・担保 &gt; 延納審査 &gt; ENN-2028-0009</p>
+          <h3>延納審査:〇〇石油株式会社(2028年度 6月分)</h3>
+          <div class="tabs"><span class="tab on">延納審査</span><span class="tab">担保台帳</span></div>
+          <h4>申請内容(F08)</h4>
+          <div class="tblwrap">
+            <table>
+              <tbody>
+                <tr><th style="width:200px">対象申告</th><td>LV-2028-000482(賦課金額 821,437,500円|納期限 2028-08-31)</td></tr>
+                <tr><th>延納を求める額</th><td class="num" style="text-align:left">400,000,000 円(一部延納)</td></tr>
+                <tr><th>延納期間</th><td>2か月(延納後納期限 2028-10-31)</td></tr>
+                <tr><th>延納理由</th><td>大型定期修繕に伴う一時的な資金繰り(資金計画書 添付)</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <h4>担保余力チェック(自動)</h4>
+          <div class="check">
+            <span class="ok">包括担保 TN-2028-001(金融機関保証)有効期間内(〜2029-03-31)</span>
+            <span class="ok">担保余力: 評価額 1,000,000,000 − 充当中 350,000,000 = <b>650,000,000円 ≧ 延納額 400,000,000円</b></span>
+            <span class="ok">過去2年の延納実績: 1件(期限内完納)|滞納歴なし</span>
+          </div>
+          <h4>決裁・後続処理</h4>
+          <div class="track">
+            <span class="tnode done"><i></i>申請受付<small>2028-08-15(納期限の2週間前)</small></span>
+            <span class="tnode done"><i></i>審査・担保充当<small>田中(収納企画)</small></span>
+            <span class="tnode now"><i></i>許可決裁<small>部長(4億円:部長専決・仮)</small></span>
+            <span class="tnode"><i></i>許可通知交付<small>R09 延納許可通知書</small></span>
+            <span class="tnode"><i></i>期限上書き連携<small>G-5消込/IF-1o変更連携</small></span>
+          </div>
+          <h4>担保台帳(この事業者)</h4>
+          <div class="tblwrap">
+            <table>
+              <thead><tr><th>担保ID</th><th>方式</th><th>種別</th><th class="num">評価額(円)</th><th class="num">充当中(円)</th><th>提供期間</th><th>状態</th><th></th></tr></thead>
+              <tbody>
+                <tr><td>TN-2028-001</td><td>包括</td><td>金融機関保証</td><td class="num">1,000,000,000</td><td class="num">350,000,000</td><td>2028-04-01〜2029-03-31</td><td><span class="pill p-done">有効</span></td><td><a class="rowlink" href="#">充当明細</a></td></tr>
+                <tr><td>TN-2028-014</td><td>個別</td><td>国債</td><td class="num">120,000,000</td><td class="num">120,000,000</td><td>2028-06-01〜完納まで</td><td><span class="pill p-fixed">充当中</span></td><td><a class="rowlink" href="#">解除申請</a></td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="alert info"><b>ℹ</b><span>延納対象額の完納(IF-1a消込)を確認すると担保充当は自動解除されます。評価額の定期見直し(不動産等)と有効期限アラートは台帳側で管理。担保の要否・種類・評価方法は政省令待ちのため、本画面は要件確定後にスコープ判断。</span></div>
+          <div class="actions"><button class="btn">許可(決裁へ)</button><button class="btn danger">不許可</button><button class="btn ghost">担保台帳を開く</button></div>
         </div>
       </div>
     </div>
