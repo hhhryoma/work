@@ -1,0 +1,476 @@
+<title>化石燃料賦課金管理システム 画面イメージ案</title>
+<style>
+  :root{
+    --ground:#f7f8f7; --panel:#ffffff; --ink:#1c2422; --ink-2:#5a6663;
+    --line:#dde3e0; --accent:#0e6a58; --accent-ink:#ffffff; --accent-soft:#e3f0ec;
+    --gov:#2b4a6f; --gov-soft:#e7edf4;
+    --good:#1a7a3c; --good-bg:#e2f2e7; --warn:#9a6a00; --warn-bg:#faf0d6;
+    --bad:#b3362b; --bad-bg:#fbe7e4; --info:#175a8c; --info-bg:#e2eef7;
+    --chip-draft:#68716e; --chip-draft-bg:#eceeed;
+    --shadow:0 1px 3px rgba(28,36,34,.08), 0 4px 16px rgba(28,36,34,.06);
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --ground:#151a19; --panel:#1e2523; --ink:#e8edeb; --ink-2:#9aa6a2;
+      --line:#333d3a; --accent:#4fb59c; --accent-ink:#0c1512; --accent-soft:#20332e;
+      --gov:#7da3cc; --gov-soft:#1f2a38;
+      --good:#6fce8f; --good-bg:#1d3325; --warn:#e3b95a; --warn-bg:#37301c;
+      --bad:#ef8d82; --bad-bg:#3b211e; --info:#7db6e0; --info-bg:#1c2f3d;
+      --chip-draft:#a3adaa; --chip-draft-bg:#2a3230;
+      --shadow:0 1px 3px rgba(0,0,0,.4), 0 4px 16px rgba(0,0,0,.3);
+    }
+  }
+  :root[data-theme="dark"]{
+    --ground:#151a19; --panel:#1e2523; --ink:#e8edeb; --ink-2:#9aa6a2;
+    --line:#333d3a; --accent:#4fb59c; --accent-ink:#0c1512; --accent-soft:#20332e;
+    --gov:#7da3cc; --gov-soft:#1f2a38;
+    --good:#6fce8f; --good-bg:#1d3325; --warn:#e3b95a; --warn-bg:#37301c;
+    --bad:#ef8d82; --bad-bg:#3b211e; --info:#7db6e0; --info-bg:#1c2f3d;
+    --chip-draft:#a3adaa; --chip-draft-bg:#2a3230;
+    --shadow:0 1px 3px rgba(0,0,0,.4), 0 4px 16px rgba(0,0,0,.3);
+  }
+  :root[data-theme="light"]{
+    --ground:#f7f8f7; --panel:#ffffff; --ink:#1c2422; --ink-2:#5a6663;
+    --line:#dde3e0; --accent:#0e6a58; --accent-ink:#ffffff; --accent-soft:#e3f0ec;
+    --gov:#2b4a6f; --gov-soft:#e7edf4;
+    --good:#1a7a3c; --good-bg:#e2f2e7; --warn:#9a6a00; --warn-bg:#faf0d6;
+    --bad:#b3362b; --bad-bg:#fbe7e4; --info:#175a8c; --info-bg:#e2eef7;
+    --chip-draft:#68716e; --chip-draft-bg:#eceeed;
+    --shadow:0 1px 3px rgba(28,36,34,.08), 0 4px 16px rgba(28,36,34,.06);
+  }
+  *{box-sizing:border-box}
+  body{background:var(--ground);color:var(--ink);
+    font-family:"Hiragino Kaku Gothic ProN","Hiragino Sans","Yu Gothic UI","Yu Gothic","Meiryo",system-ui,sans-serif;
+    line-height:1.65;margin:0;padding:2.5rem 1.25rem 5rem;font-size:15px}
+  .wrap{max-width:1080px;margin:0 auto}
+  h1{font-size:1.55rem;line-height:1.4;margin:0 0 .35rem;text-wrap:balance}
+  .lede{color:var(--ink-2);max-width:48em;margin:0 0 .75rem}
+  .disclaimer{font-size:.8rem;color:var(--ink-2);background:var(--panel);border:1px solid var(--line);
+    border-radius:6px;padding:.6rem .9rem;margin:1rem 0 2rem;max-width:60em}
+  .toc{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:1rem 1.3rem;margin-bottom:3rem;font-size:.85rem}
+  .toc h2{font-size:.85rem;margin:0 0 .5rem;letter-spacing:.05em;color:var(--ink-2)}
+  .toc .cols{display:grid;grid-template-columns:1fr 1fr;gap:.2rem 2rem}
+  @media (max-width:720px){.toc .cols{grid-template-columns:1fr}}
+  .toc a{color:var(--accent);text-decoration:none}
+  .toc .grp{font-weight:700;margin-top:.4rem}
+
+  .screen{margin:0 0 3.5rem}
+  .screen-head{display:flex;align-items:baseline;gap:.75rem;margin-bottom:.35rem;flex-wrap:wrap}
+  .screen-tag{font-size:.72rem;font-weight:700;letter-spacing:.08em;color:var(--accent);
+    border:1px solid var(--accent);border-radius:4px;padding:.1rem .5rem;white-space:nowrap}
+  .screen-tag.gov{color:var(--gov);border-color:var(--gov)}
+  .screen-head h2{font-size:1.15rem;margin:0}
+  .biz{font-size:.7rem;color:var(--ink-2);background:var(--panel);border:1px solid var(--line);border-radius:99px;padding:.08rem .6rem}
+  .screen-note{color:var(--ink-2);font-size:.85rem;margin:0 0 1rem;max-width:56em}
+
+  .frame{background:var(--panel);border:1px solid var(--line);border-radius:10px;box-shadow:var(--shadow);overflow:hidden}
+  .chrome{display:flex;align-items:center;gap:.6rem;padding:.5rem .9rem;border-bottom:1px solid var(--line);
+    background:color-mix(in srgb, var(--panel) 60%, var(--ground))}
+  .dots{display:flex;gap:5px}
+  .dots i{width:9px;height:9px;border-radius:50%;background:var(--line);display:block}
+  .urlbar{flex:1;font-size:.72rem;color:var(--ink-2);background:var(--ground);border:1px solid var(--line);
+    border-radius:99px;padding:.18rem .8rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+  .appbar{display:flex;align-items:center;gap:1rem;padding:.7rem 1.4rem;background:var(--accent);color:var(--accent-ink)}
+  .appbar.gov{background:var(--gov);color:#fff}
+  .appbar .logo{font-weight:800;font-size:.95rem}
+  .appbar .logo small{font-weight:500;opacity:.85;margin-left:.5rem;font-size:.72rem}
+  .appbar .user{margin-left:auto;font-size:.75rem;opacity:.9}
+  .layout{display:flex;min-height:320px}
+  .nav{width:200px;border-right:1px solid var(--line);padding:.9rem 0;flex-shrink:0}
+  .nav a{display:block;padding:.45rem 1.1rem;color:var(--ink-2);text-decoration:none;font-size:.84rem;border-left:3px solid transparent}
+  .nav a.on{color:var(--accent);border-left-color:var(--accent);background:var(--accent-soft);font-weight:700}
+  .gov-t .nav a.on{color:var(--gov);border-left-color:var(--gov);background:var(--gov-soft)}
+  .main{flex:1;padding:1.4rem 1.6rem;min-width:0}
+  .main h3{font-size:1.05rem;margin:0 0 .25rem}
+  .main h4{font-size:.9rem;margin:1.4rem 0 .4rem}
+  .crumb{font-size:.72rem;color:var(--ink-2);margin:0 0 .9rem}
+  @media (max-width:720px){.nav{display:none}}
+
+  .btn{display:inline-block;background:var(--accent);color:var(--accent-ink);border:none;border-radius:6px;
+    padding:.5rem 1.15rem;font-size:.85rem;font-weight:700;cursor:pointer}
+  .gov-t .btn{background:var(--gov);color:#fff}
+  .btn.ghost{background:transparent;color:var(--accent);border:1.5px solid var(--accent)}
+  .gov-t .btn.ghost{color:var(--gov);border-color:var(--gov)}
+  .btn.danger{background:transparent;color:var(--bad);border:1.5px solid var(--bad)}
+  .btn.lg{padding:.6rem 1.6rem}
+  .actions{display:flex;gap:.75rem;margin-top:1.4rem;flex-wrap:wrap}
+
+  table{border-collapse:collapse;width:100%;font-size:.82rem}
+  .tblwrap{overflow-x:auto;border:1px solid var(--line);border-radius:8px;margin-top:.7rem}
+  th{font-size:.71rem;color:var(--ink-2);text-align:left;font-weight:700;padding:.5rem .75rem;
+    border-bottom:1px solid var(--line);background:color-mix(in srgb, var(--panel) 55%, var(--ground));white-space:nowrap}
+  td{padding:.55rem .75rem;border-bottom:1px solid var(--line);white-space:nowrap;vertical-align:middle}
+  tr:last-child td{border-bottom:none}
+  .num{text-align:right;font-variant-numeric:tabular-nums}
+  th.num{text-align:right}
+  tr.sum td{font-weight:800;background:color-mix(in srgb, var(--panel) 55%, var(--ground))}
+  .pill{font-size:.71rem;font-weight:700;border-radius:99px;padding:.13rem .6rem;white-space:nowrap}
+  .p-review{color:var(--warn);background:var(--warn-bg)}
+  .p-done{color:var(--good);background:var(--good-bg)}
+  .p-back{color:var(--bad);background:var(--bad-bg)}
+  .p-draft{color:var(--chip-draft);background:var(--chip-draft-bg)}
+  .p-fixed{color:var(--info);background:var(--info-bg)}
+  a.rowlink{color:var(--accent);text-decoration:none;font-weight:700}
+  .gov-t a.rowlink{color:var(--gov)}
+
+  .steps{display:flex;gap:0;margin:.9rem 0 1.3rem;font-size:.72rem;color:var(--ink-2);flex-wrap:wrap}
+  .step{display:flex;align-items:center;gap:.4rem;padding:.3rem .9rem .3rem .6rem;border:1px solid var(--line);border-right:none;background:var(--panel)}
+  .step:first-child{border-radius:6px 0 0 6px}
+  .step:last-child{border-right:1px solid var(--line);border-radius:0 6px 6px 0}
+  .step b{width:1.15rem;height:1.15rem;border-radius:50%;background:var(--line);color:var(--ink);
+    display:inline-flex;align-items:center;justify-content:center;font-size:.68rem}
+  .step.on{color:var(--accent);font-weight:700;background:var(--accent-soft)}
+  .step.on b{background:var(--accent);color:var(--accent-ink)}
+  .step.done b{background:var(--good);color:#fff}
+
+  .formgrid{display:grid;grid-template-columns:1fr 1fr;gap:.9rem 1.4rem;margin-top:.5rem}
+  @media (max-width:720px){.formgrid{grid-template-columns:1fr}}
+  .field{display:flex;flex-direction:column;gap:.25rem}
+  .field.full{grid-column:1/-1}
+  .field label{font-size:.76rem;font-weight:700}
+  .req{color:var(--bad);font-size:.68rem;margin-left:.35rem;font-weight:700}
+  .input,.select,.ta{border:1px solid var(--line);border-radius:6px;background:var(--ground);
+    padding:.45rem .7rem;font-size:.85rem;color:var(--ink);font-family:inherit;width:100%}
+  .ta{min-height:3.6em;resize:vertical}
+  .hint{font-size:.72rem;color:var(--ink-2)}
+
+  .calc{border:1.5px solid var(--accent);border-radius:8px;background:var(--accent-soft);padding:1rem 1.2rem;margin-top:1rem}
+  .calc h5{margin:0 0 .5rem;font-size:.82rem;color:var(--accent);letter-spacing:.04em}
+  .calc table td{border-bottom:1px dashed color-mix(in srgb, var(--accent) 30%, transparent);background:transparent;padding:.4rem .2rem}
+  .calc tr.total td{border-bottom:none;font-weight:800;font-size:1.02rem;padding-top:.55rem}
+  .calc .formula{font-size:.72rem;color:var(--ink-2);margin-top:.5rem}
+
+  .alert{display:flex;gap:.6rem;font-size:.8rem;border-radius:6px;padding:.6rem .9rem;margin-top:1rem;align-items:flex-start}
+  .alert.warn{color:var(--warn);background:var(--warn-bg)}
+  .alert.info{color:var(--info);background:var(--info-bg)}
+  .alert.bad{color:var(--bad);background:var(--bad-bg)}
+  .alert b{flex-shrink:0}
+  .filechip{display:inline-flex;align-items:center;gap:.4rem;font-size:.75rem;background:var(--ground);
+    border:1px solid var(--line);border-radius:99px;padding:.2rem .7rem;margin:.35rem .25rem 0}
+
+  .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:.8rem;margin-top:.9rem}
+  .kpi{border:1px solid var(--line);border-radius:8px;padding:.75rem .9rem}
+  .kpi .v{font-size:1.45rem;font-weight:800;font-variant-numeric:tabular-nums;line-height:1.2}
+  .kpi .l{font-size:.72rem;color:var(--ink-2)}
+  .kpi.hot{border-color:var(--bad)}
+  .kpi.hot .v{color:var(--bad)}
+  .kpi.warm{border-color:var(--warn)}
+  .kpi.warm .v{color:var(--warn)}
+
+  .check{display:flex;flex-direction:column;gap:.35rem;margin-top:.5rem;font-size:.82rem}
+  .check .ok::before{content:"✓ ";color:var(--good);font-weight:800}
+  .check .ng::before{content:"✕ ";color:var(--bad);font-weight:800}
+  .tabs{display:flex;gap:0;border-bottom:2px solid var(--line);margin:.9rem 0 0;font-size:.82rem}
+  .tab{padding:.4rem 1.1rem;color:var(--ink-2);border-bottom:2.5px solid transparent;margin-bottom:-2px}
+  .tab.on{color:var(--gov);border-bottom-color:var(--gov);font-weight:700}
+  .foot{border-top:1px solid var(--line);margin-top:3rem;padding-top:1rem;font-size:.75rem;color:var(--ink-2)}
+</style>
+
+<div class="wrap">
+  <h1>化石燃料賦課金管理システム — 画面イメージ案</h1>
+  <p class="lede">事業者ポータル(P系)とGX推進機構の内部業務画面(G系)の主要6画面。業務仕様書の業務一覧(A〜F)に対応させています。テーマ色でユーザー種別を区別:<b style="color:var(--accent)">緑=事業者ポータル</b> / <b style="color:var(--gov)">紺=内部業務</b>。</p>
+  <div class="disclaimer">※ 納付書発行・督促状発行はシステム対象外。納付完了情報は経産省より連携される前提。賦課金単価(2,500円/t-CO₂)・期別(月次)・期限・利率は政省令待ちの仮置き値です。還付申請系の画面(P-5)は別紙「還付申請 画面イメージ案」を参照。</div>
+
+  <div class="toc">
+    <h2>画面一覧</h2>
+    <div class="cols">
+      <div>
+        <div class="grp">事業者ポータル(P系)</div>
+        <a href="#p2">P-2 届出(新規・変更・廃止)</a><br>
+        <a href="#p3">P-3 賦課金申告</a><br>
+        <span style="color:var(--ink-2)">P-5 還付申請 … 別紙モック(画面A〜D)</span>
+      </div>
+      <div>
+        <div class="grp">内部業務画面(G系)</div>
+        <a href="#g1">G-1 業務ダッシュボード</a><br>
+        <a href="#g3">G-3 申告審査</a><br>
+        <a href="#g5">G-5 収納状況管理(経産省連携)</a><br>
+        <a href="#g7">G-7 マスタ管理(単価・係数)</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ P-2 届出 ============ -->
+  <section class="screen" id="p2">
+    <div class="screen-head"><span class="screen-tag">P-2</span><h2>届出(化石燃料採取者等)</h2><span class="biz">対応業務 A-1|帳票 F01</span></div>
+    <p class="screen-note">制度の入口。事業開始前の届出(新規・変更・廃止)を受け付け、事業者番号を採番します。還付先口座もここで登録します。</p>
+    <div class="frame">
+      <div class="chrome"><span class="dots"><i></i><i></i><i></i></span><span class="urlbar">https://portal.gxa.go.jp/levy/notification/new</span></div>
+      <div class="appbar"><span class="logo">GX推進機構 賦課金ポータル<small>事業者用</small></span><span class="user">〇〇石油株式会社</span></div>
+      <div class="layout">
+        <nav class="nav">
+          <a href="#">ホーム</a>
+          <a href="#" class="on">届出</a>
+          <a href="#">賦課金申告</a>
+          <a href="#">申告・納付状況</a>
+          <a href="#">還付申請</a>
+          <a href="#">通知書一覧</a>
+        </nav>
+        <div class="main">
+          <p class="crumb">ホーム &gt; 届出 &gt; 新規届出</p>
+          <h3>化石燃料採取者等 届出書(新規)</h3>
+          <div class="formgrid">
+            <div class="field"><label>届出区分<span class="req">必須</span></label><select class="select"><option>新規</option><option>変更</option><option>廃止</option></select></div>
+            <div class="field"><label>法人番号<span class="req">必須</span></label><input class="input" value="1234567890123"><span class="hint">国税庁法人番号と照合します</span></div>
+            <div class="field"><label>事業者名(商号)<span class="req">必須</span></label><input class="input" value="〇〇石油株式会社"></div>
+            <div class="field"><label>代表者氏名<span class="req">必須</span></label><input class="input" value="山田 太郎"></div>
+            <div class="field full"><label>本店所在地<span class="req">必須</span></label><input class="input" value="東京都千代田区〇〇 1-2-3"></div>
+            <div class="field"><label>事業区分<span class="req">必須</span></label><select class="select"><option>輸入</option><option>採取</option><option>輸入・採取</option></select></div>
+            <div class="field"><label>取扱燃料種別(複数選択)<span class="req">必須</span></label><input class="input" value="原油、石油製品(C重油)、LNG"></div>
+            <div class="field"><label>事業開始(予定)日<span class="req">必須</span></label><input class="input" value="2028-04-01"></div>
+            <div class="field"><label>担当部署・連絡先<span class="req">必須</span></label><input class="input" value="経理部 賦課金担当 03-XXXX-XXXX"></div>
+            <div class="field full"><label>還付先口座<span class="req">条件付き必須</span></label><input class="input" value="〇〇銀行 本店 普通 1234567 ｶ)ﾏﾙﾏﾙｾｷﾕ"><span class="hint">還付を受ける場合に必須。過納還付・用途還付の振込先になります</span></div>
+          </div>
+          <div class="actions"><button class="btn ghost">下書き保存</button><button class="btn lg">確認画面へ</button></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ P-3 申告 ============ -->
+  <section class="screen" id="p3">
+    <div class="screen-head"><span class="screen-tag">P-3</span><h2>賦課金申告</h2><span class="biz">対応業務 B-1|帳票 F02・F03</span></div>
+    <p class="screen-note">中核画面。輸入実績CSV(F03)を取り込むと燃料種別ごとに集計され、CO₂換算量 × 単価で賦課金額が自動計算されます。係数・単価はマスタから自動セットし事業者は変更不可(改ざん防止)。</p>
+    <div class="frame">
+      <div class="chrome"><span class="dots"><i></i><i></i><i></i></span><span class="urlbar">https://portal.gxa.go.jp/levy/declaration/2028-06</span></div>
+      <div class="appbar"><span class="logo">GX推進機構 賦課金ポータル<small>事業者用</small></span><span class="user">〇〇石油株式会社</span></div>
+      <div class="layout">
+        <nav class="nav">
+          <a href="#">ホーム</a>
+          <a href="#">届出</a>
+          <a href="#" class="on">賦課金申告</a>
+          <a href="#">申告・納付状況</a>
+          <a href="#">還付申請</a>
+          <a href="#">通知書一覧</a>
+        </nav>
+        <div class="main">
+          <p class="crumb">賦課金申告 &gt; 2028年度6月分(仮:月次申告)</p>
+          <h3>化石燃料賦課金 申告書(2028年度 6月分)</h3>
+          <div class="steps">
+            <span class="step done"><b>✓</b>対象期間</span>
+            <span class="step done"><b>✓</b>実績取込</span>
+            <span class="step on"><b>3</b>明細確認</span>
+            <span class="step"><b>4</b>確認・提出</span>
+          </div>
+          <div>
+            <span class="filechip">📄 輸入実績_202806.csv(1,248件・取込済)</span>
+            <span class="filechip" style="color:var(--good)">✓ 形式チェックOK</span>
+          </div>
+          <h4>申告明細(燃料種別ごと)</h4>
+          <div class="tblwrap">
+            <table>
+              <thead><tr><th>燃料種別</th><th class="num">数量</th><th>単位</th><th class="num">CO₂係数<br>(t-CO₂/単位)</th><th class="num">CO₂換算量<br>(t-CO₂)</th><th class="num">控除数量<br>(国内非使用)</th><th class="num">賦課金額(円)</th></tr></thead>
+              <tbody>
+                <tr><td>原油</td><td class="num">85,000.000</td><td>kL</td><td class="num">2.619</td><td class="num">222,615.000</td><td class="num">—</td><td class="num">556,537,500</td></tr>
+                <tr><td>C重油</td><td class="num">12,000.000</td><td>kL</td><td class="num">2.980</td><td class="num">35,760.000</td><td class="num">—</td><td class="num">89,400,000</td></tr>
+                <tr><td>LNG</td><td class="num">30,000.000</td><td>t</td><td class="num">2.700</td><td class="num">81,000.000</td><td class="num">4,000.000t分</td><td class="num">175,500,000</td></tr>
+                <tr class="sum"><td>合計</td><td class="num"></td><td></td><td class="num"></td><td class="num">339,375.000</td><td class="num"></td><td class="num">821,437,500</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="calc">
+            <h5>賦課金額(自動計算)</h5>
+            <table>
+              <tr><td>適用単価(2028年度・政令)</td><td class="num">2,500 円/t-CO₂ <span class="hint">※想定値・仮置き</span></td></tr>
+              <tr class="total"><td>申告税額合計</td><td class="num">821,437,500 円</td></tr>
+            </table>
+            <p class="formula">計算式:賦課金額 = (数量 − 控除数量) × CO₂排出係数 × 賦課金単価。係数・単価はマスタ(G-7)から自動セット・変更不可。</p>
+          </div>
+          <div class="alert warn"><b>⚠</b><span>申告期限:2028-07-31(仮置き)。提出後の減額訂正は「更正の請求」(還付申請メニュー)から行ってください。納付手続はポータル対象外です(納付状況は後日反映されます)。</span></div>
+          <div class="actions"><button class="btn ghost">下書き保存</button><button class="btn lg">確認・提出へ</button></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ G-1 ダッシュボード ============ -->
+  <section class="screen gov-t" id="g1">
+    <div class="screen-head"><span class="screen-tag gov">G-1</span><h2>業務ダッシュボード</h2><span class="biz">内部業務|全業務の入口</span></div>
+    <p class="screen-note">職員のホーム。未処理件数と収納率をKPIで即読させ、要対応(差戻し期限超過・突合NG・過納検知)を1つのワークリストに集約します。</p>
+    <div class="frame">
+      <div class="chrome"><span class="dots"><i></i><i></i><i></i></span><span class="urlbar">https://ops.gxa.go.jp/levy/dashboard</span></div>
+      <div class="appbar gov"><span class="logo">賦課金管理システム<small>GX推進機構 内部業務</small></span><span class="user">徴収部 佐藤(審査担当)</span></div>
+      <div class="layout">
+        <nav class="nav">
+          <a href="#" class="on">ダッシュボード</a>
+          <a href="#">事業者管理</a>
+          <a href="#">申告審査</a>
+          <a href="#">決定・更正</a>
+          <a href="#">収納状況</a>
+          <a href="#">還付審査・支払</a>
+          <a href="#">マスタ管理</a>
+        </nav>
+        <div class="main">
+          <h3>2028年度 6月分 処理状況</h3>
+          <div class="kpis">
+            <div class="kpi warm"><div class="v">24</div><div class="l">審査待ち申告</div></div>
+            <div class="kpi hot"><div class="v">6</div><div class="l">差戻し・照会中</div></div>
+            <div class="kpi hot"><div class="v">3</div><div class="l">未申告事業者</div></div>
+            <div class="kpi warm"><div class="v">9</div><div class="l">還付支払待ち</div></div>
+            <div class="kpi"><div class="v">96.4%</div><div class="l">当期収納率</div></div>
+          </div>
+          <h4>要対応リスト</h4>
+          <div class="tblwrap">
+            <table>
+              <thead><tr><th>種別</th><th>事業者</th><th>対象</th><th>期限</th><th>状態</th><th></th></tr></thead>
+              <tbody>
+                <tr><td>申告審査</td><td>〇〇石油</td><td>LV-2028-000482</td><td>2028-08-05</td><td><span class="pill p-back">突合NG</span></td><td><a class="rowlink" href="#g3">審査へ</a></td></tr>
+                <tr><td>無申告</td><td>△△エナジー</td><td>2028年度6月分</td><td>期限超過 5日</td><td><span class="pill p-back">決定検討</span></td><td><a class="rowlink" href="#">決定へ</a></td></tr>
+                <tr><td>還付審査</td><td>□□商事</td><td>RF-2029-0087</td><td>2028-08-10</td><td><span class="pill p-review">審査中</span></td><td><a class="rowlink" href="#">審査へ</a></td></tr>
+                <tr><td>収納</td><td>◇◇ガス</td><td>連携エラー 4件</td><td>本日</td><td><span class="pill p-review">要確認</span></td><td><a class="rowlink" href="#g5">取込結果へ</a></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ G-3 申告審査 ============ -->
+  <section class="screen gov-t" id="g3">
+    <div class="screen-head"><span class="screen-tag gov">G-3</span><h2>申告審査</h2><span class="biz">対応業務 B-2・B-3|入力 F02・F03・F07</span></div>
+    <p class="screen-note">申告値と外部データ(輸入通関実績)の突合が審査の芯。差異は行単位で赤くハイライトし、承認/差戻し/照会の3アクションに収束させます。</p>
+    <div class="frame">
+      <div class="chrome"><span class="dots"><i></i><i></i><i></i></span><span class="urlbar">https://ops.gxa.go.jp/levy/review/LV-2028-000482</span></div>
+      <div class="appbar gov"><span class="logo">賦課金管理システム<small>GX推進機構 内部業務</small></span><span class="user">徴収部 佐藤(審査担当)</span></div>
+      <div class="layout">
+        <nav class="nav">
+          <a href="#">ダッシュボード</a>
+          <a href="#">事業者管理</a>
+          <a href="#" class="on">申告審査</a>
+          <a href="#">決定・更正</a>
+          <a href="#">収納状況</a>
+          <a href="#">還付審査・支払</a>
+          <a href="#">マスタ管理</a>
+        </nav>
+        <div class="main">
+          <p class="crumb">申告審査 &gt; LV-2028-000482</p>
+          <h3>申告審査:〇〇石油株式会社(2028年度 6月分)</h3>
+          <h4>自動チェック結果</h4>
+          <div class="check">
+            <span class="ok">形式チェック(必須項目・型・桁)</span>
+            <span class="ok">係数・単価がマスタと一致</span>
+            <span class="ng">数量突合:輸入通関実績との差異あり(下表)</span>
+          </div>
+          <h4>通関実績との突合</h4>
+          <div class="tblwrap">
+            <table>
+              <thead><tr><th>燃料種別</th><th class="num">申告数量</th><th class="num">通関実績(NACCS)</th><th class="num">差異</th><th>判定</th></tr></thead>
+              <tbody>
+                <tr><td>原油</td><td class="num">85,000.000 kL</td><td class="num">85,000.000 kL</td><td class="num">0</td><td><span class="pill p-done">一致</span></td></tr>
+                <tr><td>C重油</td><td class="num">12,000.000 kL</td><td class="num">12,000.000 kL</td><td class="num">0</td><td><span class="pill p-done">一致</span></td></tr>
+                <tr><td>LNG</td><td class="num">30,000.000 t</td><td class="num">34,834.000 t</td><td class="num" style="color:var(--bad);font-weight:700">▲4,834.000</td><td><span class="pill p-back">差異</span></td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="alert bad"><b>✕</b><span>LNGの申告数量が通関実績を4,834t下回っています。控除数量(国内非使用 4,000t)の証憑を確認のうえ、残差834tについて事業者へ照会してください。</span></div>
+          <div class="field full" style="margin-top:1rem">
+            <label>審査メモ</label>
+            <textarea class="ta">控除分の輸出許可書は添付済み。残差834tは移出時期のズレの可能性 → 照会文送付。</textarea>
+          </div>
+          <div class="actions">
+            <button class="btn">承認(賦課確定へ)</button>
+            <button class="btn ghost">事業者へ照会</button>
+            <button class="btn danger">差戻し</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ G-5 収納状況 ============ -->
+  <section class="screen gov-t" id="g5">
+    <div class="screen-head"><span class="screen-tag gov">G-5</span><h2>収納状況管理(経産省連携)</h2><span class="biz">対応業務 D-1・D-2|入力 F06</span></div>
+    <p class="screen-note">納付完了情報は経産省からの日次連携ファイル(F06)で受領し、賦課決定額と自動消込。納付書・督促状は対象外なので、この画面は「取込結果の確認」と「滞納・過納の検知」に特化します。過納検知は還付(E-1)への導線を持ちます。</p>
+    <div class="frame">
+      <div class="chrome"><span class="dots"><i></i><i></i><i></i></span><span class="urlbar">https://ops.gxa.go.jp/levy/payment/status</span></div>
+      <div class="appbar gov"><span class="logo">賦課金管理システム<small>GX推進機構 内部業務</small></span><span class="user">徴収部 鈴木(収納担当)</span></div>
+      <div class="layout">
+        <nav class="nav">
+          <a href="#">ダッシュボード</a>
+          <a href="#">事業者管理</a>
+          <a href="#">申告審査</a>
+          <a href="#">決定・更正</a>
+          <a href="#" class="on">収納状況</a>
+          <a href="#">還付審査・支払</a>
+          <a href="#">マスタ管理</a>
+        </nav>
+        <div class="main">
+          <p class="crumb">収納状況 &gt; 連携取込・消込</p>
+          <h3>納付完了情報の取込結果(経産省連携)</h3>
+          <div class="kpis">
+            <div class="kpi"><div class="v">132</div><div class="l">本日取込件数(PAY_20280810.csv)</div></div>
+            <div class="kpi"><div class="v">128</div><div class="l">消込成功</div></div>
+            <div class="kpi hot"><div class="v">4</div><div class="l">エラー(要手動確認)</div></div>
+            <div class="kpi warm"><div class="v">2</div><div class="l">過納検知 → 還付案内</div></div>
+          </div>
+          <h4>消込状況一覧(2028年度 6月分)</h4>
+          <div class="tblwrap">
+            <table>
+              <thead><tr><th>事業者</th><th>申告/決定番号</th><th class="num">賦課決定額(円)</th><th class="num">納付済額(円)</th><th>納付日</th><th class="num">延滞金(自動算定)</th><th>状態</th><th></th></tr></thead>
+              <tbody>
+                <tr><td>〇〇石油</td><td>LV-2028-000482</td><td class="num">821,437,500</td><td class="num">821,437,500</td><td>2028-08-08</td><td class="num">—</td><td><span class="pill p-done">消込済</span></td><td></td></tr>
+                <tr><td>□□商事</td><td>LV-2028-000513</td><td class="num">214,000,000</td><td class="num">226,085,000</td><td>2028-08-09</td><td class="num">—</td><td><span class="pill p-fixed">過納検知</span></td><td><a class="rowlink" href="#">還付案内</a></td></tr>
+                <tr><td>△△エナジー</td><td>LV-2028-000520</td><td class="num">96,250,000</td><td class="num">40,000,000</td><td>2028-08-09</td><td class="num">—</td><td><span class="pill p-review">一部納付</span></td><td></td></tr>
+                <tr><td>◇◇ガス</td><td>LV-2028-000497</td><td class="num">58,750,000</td><td class="num">0</td><td>—</td><td class="num">計算中(納付日確定時)</td><td><span class="pill p-back">未納</span></td><td><a class="rowlink" href="#">滞納整理へ</a></td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="alert info"><b>ℹ</b><span>督促状の発行は本システム対象外です。未納案件は滞納整理(担当部門)へ連携し、延滞金は納付完了情報の納付日をもって確定計算します。連携エラー4件:申告番号不一致(3件)、連携ID重複(1件)。</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ G-7 マスタ ============ -->
+  <section class="screen gov-t" id="g7">
+    <div class="screen-head"><span class="screen-tag gov">G-7</span><h2>マスタ管理(単価・係数・用途区分)</h2><span class="biz">対応業務 F-1|全計算の基盤</span></div>
+    <p class="screen-note">賦課金単価は毎年度政令で決まるため「政令番号・適用期間」を持たせ、履歴を保持します。申告(P-3)・還付(E系)の計算はすべてこのマスタを参照します。</p>
+    <div class="frame">
+      <div class="chrome"><span class="dots"><i></i><i></i><i></i></span><span class="urlbar">https://ops.gxa.go.jp/levy/master/rates</span></div>
+      <div class="appbar gov"><span class="logo">賦課金管理システム<small>GX推進機構 内部業務</small></span><span class="user">企画部 高橋(制度担当)</span></div>
+      <div class="layout">
+        <nav class="nav">
+          <a href="#">ダッシュボード</a>
+          <a href="#">事業者管理</a>
+          <a href="#">申告審査</a>
+          <a href="#">決定・更正</a>
+          <a href="#">収納状況</a>
+          <a href="#">還付審査・支払</a>
+          <a href="#" class="on">マスタ管理</a>
+        </nav>
+        <div class="main">
+          <p class="crumb">マスタ管理</p>
+          <h3>マスタ管理</h3>
+          <div class="tabs"><span class="tab on">賦課金単価</span><span class="tab">CO₂排出係数</span><span class="tab">用途区分(還付)</span><span class="tab">燃料種別</span></div>
+          <h4>年度別 賦課金単価(政令)</h4>
+          <div class="tblwrap">
+            <table>
+              <thead><tr><th>年度</th><th class="num">単価(円/t-CO₂)</th><th>根拠政令</th><th>適用期間</th><th>状態</th><th></th></tr></thead>
+              <tbody>
+                <tr><td>2028</td><td class="num">2,500</td><td>令和10年政令第XX号(仮)</td><td>2028-04-01 〜 2029-03-31</td><td><span class="pill p-done">適用中</span></td><td><a class="rowlink" href="#">履歴</a></td></tr>
+                <tr><td>2029</td><td class="num">(未確定)</td><td>—</td><td>2029-04-01 〜</td><td><span class="pill p-draft">政令待ち</span></td><td><a class="rowlink" href="#">登録</a></td></tr>
+              </tbody>
+            </table>
+          </div>
+          <h4>CO₂排出係数(抜粋)</h4>
+          <div class="tblwrap">
+            <table>
+              <thead><tr><th>燃料コード</th><th>燃料種別</th><th>単位</th><th class="num">係数(t-CO₂/単位)</th><th>出所</th></tr></thead>
+              <tbody>
+                <tr><td>01</td><td>原油</td><td>kL</td><td class="num">2.619</td><td>政令別表(仮:温対法係数準拠)</td></tr>
+                <tr><td>05</td><td>C重油</td><td>kL</td><td class="num">2.980</td><td>同上</td></tr>
+                <tr><td>21</td><td>LNG</td><td>t</td><td class="num">2.700</td><td>同上</td></tr>
+                <tr><td>31</td><td>一般炭</td><td>t</td><td class="num">2.330</td><td>同上</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="alert warn"><b>⚠</b><span>係数・単価の改定は適用期間で世代管理し、過年度分の還付計算では「納付年度時点の値」を参照します。</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="foot">化石燃料賦課金管理システム 画面イメージ(業務仕様書ドラフト対応)|還付申請系(P-5/G-6詳細)は別紙「還付申請 画面イメージ案」参照|数値・期限・単価・係数は政省令公布前の仮置き。</div>
+</div>

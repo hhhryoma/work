@@ -1,0 +1,453 @@
+<title>化石燃料賦課金 還付申請 画面イメージ案</title>
+<style>
+  :root{
+    --ground:#f7f8f7;
+    --panel:#ffffff;
+    --ink:#1c2422;
+    --ink-2:#5a6663;
+    --line:#dde3e0;
+    --accent:#0e6a58;
+    --accent-ink:#ffffff;
+    --accent-soft:#e3f0ec;
+    --good:#1a7a3c; --good-bg:#e2f2e7;
+    --warn:#9a6a00; --warn-bg:#faf0d6;
+    --bad:#b3362b;  --bad-bg:#fbe7e4;
+    --info:#175a8c; --info-bg:#e2eef7;
+    --chip-draft:#68716e; --chip-draft-bg:#eceeed;
+    --shadow:0 1px 3px rgba(28,36,34,.08), 0 4px 16px rgba(28,36,34,.06);
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --ground:#151a19; --panel:#1e2523; --ink:#e8edeb; --ink-2:#9aa6a2;
+      --line:#333d3a; --accent:#4fb59c; --accent-ink:#0c1512; --accent-soft:#20332e;
+      --good:#6fce8f; --good-bg:#1d3325; --warn:#e3b95a; --warn-bg:#37301c;
+      --bad:#ef8d82; --bad-bg:#3b211e; --info:#7db6e0; --info-bg:#1c2f3d;
+      --chip-draft:#a3adaa; --chip-draft-bg:#2a3230;
+      --shadow:0 1px 3px rgba(0,0,0,.4), 0 4px 16px rgba(0,0,0,.3);
+    }
+  }
+  :root[data-theme="dark"]{
+    --ground:#151a19; --panel:#1e2523; --ink:#e8edeb; --ink-2:#9aa6a2;
+    --line:#333d3a; --accent:#4fb59c; --accent-ink:#0c1512; --accent-soft:#20332e;
+    --good:#6fce8f; --good-bg:#1d3325; --warn:#e3b95a; --warn-bg:#37301c;
+    --bad:#ef8d82; --bad-bg:#3b211e; --info:#7db6e0; --info-bg:#1c2f3d;
+    --chip-draft:#a3adaa; --chip-draft-bg:#2a3230;
+    --shadow:0 1px 3px rgba(0,0,0,.4), 0 4px 16px rgba(0,0,0,.3);
+  }
+  :root[data-theme="light"]{
+    --ground:#f7f8f7; --panel:#ffffff; --ink:#1c2422; --ink-2:#5a6663;
+    --line:#dde3e0; --accent:#0e6a58; --accent-ink:#ffffff; --accent-soft:#e3f0ec;
+    --good:#1a7a3c; --good-bg:#e2f2e7; --warn:#9a6a00; --warn-bg:#faf0d6;
+    --bad:#b3362b; --bad-bg:#fbe7e4; --info:#175a8c; --info-bg:#e2eef7;
+    --chip-draft:#68716e; --chip-draft-bg:#eceeed;
+    --shadow:0 1px 3px rgba(28,36,34,.08), 0 4px 16px rgba(28,36,34,.06);
+  }
+  *{box-sizing:border-box}
+  body{
+    background:var(--ground); color:var(--ink);
+    font-family:"Hiragino Kaku Gothic ProN","Hiragino Sans","Yu Gothic UI","Yu Gothic","Meiryo",system-ui,sans-serif;
+    line-height:1.65; margin:0; padding:2.5rem 1.25rem 5rem;
+    font-size:15px;
+  }
+  .wrap{max-width:1060px;margin:0 auto}
+  h1{font-size:1.55rem;line-height:1.4;margin:0 0 .35rem;text-wrap:balance}
+  .lede{color:var(--ink-2);max-width:46em;margin:0 0 .75rem}
+  .disclaimer{
+    font-size:.8rem;color:var(--ink-2);background:var(--panel);border:1px solid var(--line);
+    border-radius:6px;padding:.6rem .9rem;margin:1rem 0 2.5rem;max-width:56em;
+  }
+  .screen{margin:0 0 3.25rem}
+  .screen-head{display:flex;align-items:baseline;gap:.75rem;margin-bottom:.35rem}
+  .screen-tag{
+    font-size:.72rem;font-weight:700;letter-spacing:.08em;color:var(--accent);
+    border:1px solid var(--accent);border-radius:4px;padding:.1rem .5rem;white-space:nowrap;
+  }
+  .screen-head h2{font-size:1.15rem;margin:0}
+  .screen-note{color:var(--ink-2);font-size:.85rem;margin:0 0 1rem;max-width:52em}
+
+  /* ---- browser frame ---- */
+  .frame{background:var(--panel);border:1px solid var(--line);border-radius:10px;box-shadow:var(--shadow);overflow:hidden}
+  .chrome{display:flex;align-items:center;gap:.6rem;padding:.5rem .9rem;border-bottom:1px solid var(--line);background:color-mix(in srgb, var(--panel) 60%, var(--ground))}
+  .dots{display:flex;gap:5px}
+  .dots i{width:9px;height:9px;border-radius:50%;background:var(--line);display:block}
+  .urlbar{flex:1;font-size:.72rem;color:var(--ink-2);background:var(--ground);border:1px solid var(--line);border-radius:99px;padding:.18rem .8rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+  /* ---- app shell ---- */
+  .appbar{display:flex;align-items:center;gap:1rem;padding:.7rem 1.4rem;background:var(--accent);color:var(--accent-ink)}
+  .appbar .logo{font-weight:800;font-size:.95rem;letter-spacing:.02em}
+  .appbar .logo small{font-weight:500;opacity:.85;margin-left:.5rem;font-size:.72rem}
+  .appbar .user{margin-left:auto;font-size:.75rem;opacity:.9}
+  .layout{display:flex;min-height:340px}
+  .nav{width:190px;border-right:1px solid var(--line);padding:.9rem 0;flex-shrink:0}
+  .nav a{display:block;padding:.45rem 1.1rem;color:var(--ink-2);text-decoration:none;font-size:.85rem;border-left:3px solid transparent}
+  .nav a.on{color:var(--accent);border-left-color:var(--accent);background:var(--accent-soft);font-weight:700}
+  .main{flex:1;padding:1.4rem 1.6rem;min-width:0}
+  .main h3{font-size:1.05rem;margin:0 0 .25rem}
+  .crumb{font-size:.72rem;color:var(--ink-2);margin:0 0 .9rem}
+  @media (max-width:720px){ .nav{display:none} }
+
+  /* ---- components ---- */
+  .cards{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-top:1rem}
+  @media (max-width:720px){.cards{grid-template-columns:1fr}}
+  .card{border:1px solid var(--line);border-radius:8px;padding:1.1rem 1.2rem;display:flex;flex-direction:column;gap:.5rem}
+  .card h4{margin:0;font-size:.98rem}
+  .card .kind{font-size:.7rem;font-weight:700;letter-spacing:.06em;color:var(--info);background:var(--info-bg);border-radius:4px;padding:.1rem .5rem;align-self:flex-start}
+  .card.uto .kind{color:var(--good);background:var(--good-bg)}
+  .card p{margin:0;font-size:.83rem;color:var(--ink-2)}
+  .card .deadline{font-size:.78rem;color:var(--warn);background:var(--warn-bg);border-radius:4px;padding:.25rem .6rem}
+  .btn{display:inline-block;background:var(--accent);color:var(--accent-ink);border:none;border-radius:6px;
+    padding:.5rem 1.15rem;font-size:.85rem;font-weight:700;cursor:pointer;align-self:flex-start;margin-top:.25rem}
+  .btn.ghost{background:transparent;color:var(--accent);border:1.5px solid var(--accent)}
+  .btn.lg{padding:.6rem 1.6rem}
+
+  table{border-collapse:collapse;width:100%;font-size:.83rem}
+  .tblwrap{overflow-x:auto;border:1px solid var(--line);border-radius:8px;margin-top:.9rem}
+  th{font-size:.72rem;color:var(--ink-2);text-align:left;font-weight:700;letter-spacing:.03em;
+     padding:.55rem .8rem;border-bottom:1px solid var(--line);background:color-mix(in srgb, var(--panel) 55%, var(--ground));white-space:nowrap}
+  td{padding:.6rem .8rem;border-bottom:1px solid var(--line);white-space:nowrap;vertical-align:middle}
+  tr:last-child td{border-bottom:none}
+  .num{text-align:right;font-variant-numeric:tabular-nums}
+  th.num{text-align:right}
+  .pill{font-size:.72rem;font-weight:700;border-radius:99px;padding:.14rem .65rem;white-space:nowrap}
+  .p-review{color:var(--warn);background:var(--warn-bg)}
+  .p-done{color:var(--good);background:var(--good-bg)}
+  .p-back{color:var(--bad);background:var(--bad-bg)}
+  .p-draft{color:var(--chip-draft);background:var(--chip-draft-bg)}
+  .p-fixed{color:var(--info);background:var(--info-bg)}
+  a.rowlink{color:var(--accent);text-decoration:none;font-weight:700}
+
+  /* stepper */
+  .steps{display:flex;gap:0;margin:.9rem 0 1.4rem;font-size:.72rem;color:var(--ink-2);flex-wrap:wrap}
+  .step{display:flex;align-items:center;gap:.4rem;padding:.3rem .9rem .3rem .6rem;border:1px solid var(--line);border-right:none;background:var(--panel)}
+  .step:first-child{border-radius:6px 0 0 6px}
+  .step:last-child{border-right:1px solid var(--line);border-radius:0 6px 6px 0}
+  .step b{width:1.15rem;height:1.15rem;border-radius:50%;background:var(--line);color:var(--ink);display:inline-flex;align-items:center;justify-content:center;font-size:.68rem}
+  .step.on{color:var(--accent);font-weight:700;background:var(--accent-soft)}
+  .step.on b{background:var(--accent);color:var(--accent-ink)}
+  .step.done b{background:var(--good);color:#fff}
+
+  .formgrid{display:grid;grid-template-columns:1fr 1fr;gap:.9rem 1.4rem;margin-top:.5rem}
+  @media (max-width:720px){.formgrid{grid-template-columns:1fr}}
+  .field{display:flex;flex-direction:column;gap:.25rem}
+  .field.full{grid-column:1/-1}
+  .field label{font-size:.76rem;font-weight:700}
+  .req{color:var(--bad);font-size:.68rem;margin-left:.35rem;font-weight:700}
+  .input,.select,.ta{
+    border:1px solid var(--line);border-radius:6px;background:var(--ground);
+    padding:.45rem .7rem;font-size:.85rem;color:var(--ink);font-family:inherit;width:100%;
+  }
+  .input:read-only{opacity:.75}
+  .hint{font-size:.72rem;color:var(--ink-2)}
+  .ta{min-height:4.2em;resize:vertical}
+
+  .calc{border:1.5px solid var(--accent);border-radius:8px;background:var(--accent-soft);padding:1rem 1.2rem;margin-top:1.2rem}
+  .calc h5{margin:0 0 .6rem;font-size:.82rem;color:var(--accent);letter-spacing:.04em}
+  .calc table{font-size:.85rem}
+  .calc td{border-bottom:1px dashed color-mix(in srgb, var(--accent) 30%, transparent);background:transparent;padding:.4rem .2rem}
+  .calc tr.total td{border-bottom:none;font-weight:800;font-size:1.02rem;padding-top:.6rem}
+  .calc .formula{font-size:.72rem;color:var(--ink-2);margin-top:.5rem}
+
+  .upload{border:1.5px dashed var(--line);border-radius:8px;padding:1rem;text-align:center;color:var(--ink-2);font-size:.8rem;margin-top:.4rem}
+  .filechip{display:inline-flex;align-items:center;gap:.4rem;font-size:.75rem;background:var(--ground);border:1px solid var(--line);border-radius:99px;padding:.2rem .7rem;margin:.5rem .25rem 0}
+
+  .actions{display:flex;gap:.75rem;margin-top:1.5rem;flex-wrap:wrap}
+  .alert{display:flex;gap:.6rem;font-size:.8rem;border-radius:6px;padding:.6rem .9rem;margin-top:1rem;align-items:flex-start}
+  .alert.warn{color:var(--warn);background:var(--warn-bg)}
+  .alert.info{color:var(--info);background:var(--info-bg)}
+  .alert b{flex-shrink:0}
+
+  .diff{display:grid;grid-template-columns:1fr auto 1fr;gap:.9rem;align-items:stretch;margin-top:.9rem}
+  @media (max-width:720px){.diff{grid-template-columns:1fr}}
+  .diffbox{border:1px solid var(--line);border-radius:8px;padding:.85rem 1rem}
+  .diffbox h5{margin:0 0 .4rem;font-size:.74rem;color:var(--ink-2);letter-spacing:.04em}
+  .diffbox .amt{font-size:1.25rem;font-weight:800;font-variant-numeric:tabular-nums}
+  .diffbox.new{border-color:var(--accent)}
+  .diffarrow{align-self:center;color:var(--ink-2);font-size:1.2rem;text-align:center}
+
+  /* status tracker */
+  .track{display:flex;gap:0;margin-top:1rem;flex-wrap:wrap}
+  .tnode{flex:1;min-width:110px;text-align:center;position:relative;padding-top:1.5rem;font-size:.74rem;color:var(--ink-2)}
+  .tnode::before{content:"";position:absolute;top:.55rem;left:50%;width:100%;height:2px;background:var(--line)}
+  .tnode:last-child::before{display:none}
+  .tnode i{position:absolute;top:.15rem;left:calc(50% - .42rem);width:.85rem;height:.85rem;border-radius:50%;
+    background:var(--panel);border:2.5px solid var(--line);z-index:1}
+  .tnode.done i{background:var(--good);border-color:var(--good)}
+  .tnode.done::before{background:var(--good)}
+  .tnode.now i{background:var(--panel);border-color:var(--warn)}
+  .tnode.now{color:var(--warn);font-weight:700}
+  .tnode small{display:block;font-size:.66rem;font-weight:400;color:var(--ink-2)}
+
+  .legend{font-size:.78rem;color:var(--ink-2);margin-top:.9rem}
+  .foot{border-top:1px solid var(--line);margin-top:3rem;padding-top:1rem;font-size:.75rem;color:var(--ink-2)}
+</style>
+
+<div class="wrap">
+  <h1>化石燃料賦課金 還付申請 — 画面イメージ案</h1>
+  <p class="lede">GX推進機構の事業者向けポータルを想定した、還付業務3画面のワイヤーフレームです。調査で整理した「過納還付(更正の請求型)/用途還付(還付申請型)」の二系統をそのまま画面構造に反映しています。</p>
+  <div class="disclaimer">※ 本モックは制度調査に基づく設計イメージです。賦課金単価(円/t-CO₂)・還付加算金の利率・申請期限・様式は政省令で定められる予定のため、数値はすべて仮置きです。</div>
+
+  <!-- ============ SCREEN A ============ -->
+  <section class="screen">
+    <div class="screen-head"><span class="screen-tag">画面A</span><h2>還付メニュー(申請種別の選択)</h2></div>
+    <p class="screen-note">入口で「当初の賦課が誤っていた(過納)」か「賦課は正しいが特定用途に使った(用途)」かを事業者に選ばせ、法的性質の異なる2フローを最初から分離します。</p>
+    <div class="frame">
+      <div class="chrome"><span class="dots"><i></i><i></i><i></i></span><span class="urlbar">https://portal.gxa.go.jp/levy/refund</span></div>
+      <div class="appbar"><span class="logo">GX推進機構 賦課金ポータル<small>事業者用</small></span><span class="user">〇〇石油株式会社(事業者番号 F-102394)｜担当:山田</span></div>
+      <div class="layout">
+        <nav class="nav">
+          <a href="#">ホーム</a>
+          <a href="#">賦課金申告・納付</a>
+          <a href="#" class="on">還付申請</a>
+          <a href="#">届出情報の管理</a>
+          <a href="#">通知書一覧</a>
+        </nav>
+        <div class="main">
+          <p class="crumb">ホーム &gt; 還付申請</p>
+          <h3>還付申請を開始する</h3>
+          <div class="cards">
+            <div class="card">
+              <span class="kind">過納還付(賦課金額の更正の請求)</span>
+              <h4>納付した賦課金額が過大だった</h4>
+              <p>申告の計算誤り・二重納付などにより、確定した賦課金額が本来の額を上回っている場合。機構による<b>減額更正</b>を経て、過納額に<b>還付加算金</b>を加えて還付されます。</p>
+              <div class="deadline">請求期限:法定納期限から5年以内(仮置き)</div>
+              <button class="btn">更正の請求へ進む</button>
+            </div>
+            <div class="card uto">
+              <span class="kind">用途還付(還付申請)</span>
+              <h4>賦課済みの燃料を特定用途に使った</h4>
+              <p>賦課自体は正しいが、その後に<b>輸出等の国内非使用</b>・<b>原料用途</b>など政令で定める用途に供したことが確定した場合。使用実績に基づき申請します。</p>
+              <div class="deadline">申請期限:用途に供した日から1年以内(仮置き)</div>
+              <button class="btn">用途還付の申請へ進む</button>
+            </div>
+          </div>
+          <div class="alert info"><b>ℹ</b><span>石油石炭税・地球温暖化対策税の還付(税務署への申請)とは別手続です。同一燃料について両方の還付を受ける場合は、それぞれの窓口へ申請してください。</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ SCREEN B ============ -->
+  <section class="screen">
+    <div class="screen-head"><span class="screen-tag">画面B</span><h2>用途還付 新規申請(還付額の自動計算)</h2></div>
+    <p class="screen-note">燃料種別と数量を入れると CO₂換算量 × 賦課金単価 で還付見込額が自動計算されるのが画面の芯。証憑(用途を証する書類)の添付を必須にします。</p>
+    <div class="frame">
+      <div class="chrome"><span class="dots"><i></i><i></i><i></i></span><span class="urlbar">https://portal.gxa.go.jp/levy/refund/use/new</span></div>
+      <div class="appbar"><span class="logo">GX推進機構 賦課金ポータル<small>事業者用</small></span><span class="user">〇〇石油株式会社</span></div>
+      <div class="layout">
+        <nav class="nav">
+          <a href="#">ホーム</a>
+          <a href="#">賦課金申告・納付</a>
+          <a href="#" class="on">還付申請</a>
+          <a href="#">届出情報の管理</a>
+          <a href="#">通知書一覧</a>
+        </nav>
+        <div class="main">
+          <p class="crumb">還付申請 &gt; 用途還付 &gt; 新規申請</p>
+          <h3>用途還付申請(新規)</h3>
+          <div class="steps">
+            <span class="step done"><b>✓</b>対象燃料の特定</span>
+            <span class="step on"><b>2</b>用途・数量の入力</span>
+            <span class="step"><b>3</b>証憑の添付</span>
+            <span class="step"><b>4</b>還付先口座</span>
+            <span class="step"><b>5</b>確認・提出</span>
+          </div>
+          <div class="formgrid">
+            <div class="field">
+              <label>対象納付年度<span class="req">必須</span></label>
+              <select class="select"><option>2028年度(第1期納付分)</option></select>
+              <span class="hint">納付済の申告と紐づけて対象を特定します</span>
+            </div>
+            <div class="field">
+              <label>納付済申告番号<span class="req">必須</span></label>
+              <input class="input" value="LV-2028-000482(納付日 2028-09-30)" readonly>
+            </div>
+            <div class="field">
+              <label>燃料種別<span class="req">必須</span></label>
+              <select class="select"><option>C重油</option></select>
+            </div>
+            <div class="field">
+              <label>用途区分<span class="req">必須</span></label>
+              <select class="select"><option>輸出(国内で使用しない化石燃料)</option></select>
+              <span class="hint">政令で定める減額対象用途から選択</span>
+            </div>
+            <div class="field">
+              <label>特定用途に供した数量<span class="req">必須</span></label>
+              <input class="input num" value="12,000 kL">
+            </div>
+            <div class="field">
+              <label>用途に供した日<span class="req">必須</span></label>
+              <input class="input" value="2029-01-15">
+              <span class="hint">申請期限の起算日になります(残り 271日)</span>
+            </div>
+          </div>
+
+          <div class="calc">
+            <h5>還付見込額(自動計算)</h5>
+            <table>
+              <tr><td>CO₂換算量</td><td class="num">12,000 kL × 2.98 t-CO₂/kL = <b>35,760 t-CO₂</b></td></tr>
+              <tr><td>賦課金単価(2028年度・政令)</td><td class="num">2,500 円/t-CO₂ <span class="hint">※想定値・仮置き</span></td></tr>
+              <tr class="total"><td>還付見込額</td><td class="num">89,400,000 円</td></tr>
+            </table>
+            <p class="formula">計算式:還付額 = 特定用途に供した数量 × CO₂排出係数 × 納付年度の賦課金単価(納付済額が上限)</p>
+          </div>
+
+          <div class="field full" style="margin-top:1.2rem">
+            <label>証憑書類<span class="req">必須</span></label>
+            <div class="upload">輸出許可書・船積書類など、用途を証する書類をドラッグ&ドロップ(PDF/最大10MB)
+              <div><span class="filechip">📄 輸出許可書_202901.pdf</span><span class="filechip">📄 B_L写し.pdf</span></div>
+            </div>
+          </div>
+
+          <div class="alert warn"><b>⚠</b><span>同一数量について石油石炭税の還付(税務署)を併用申請している場合は、次画面でその旨の申告が必要です。</span></div>
+          <div class="actions">
+            <button class="btn ghost">下書き保存</button>
+            <button class="btn lg">次へ(証憑の添付)</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ SCREEN C ============ -->
+  <section class="screen">
+    <div class="screen-head"><span class="screen-tag">画面C</span><h2>過納還付 — 賦課金額の更正の請求</h2></div>
+    <p class="screen-note">こちらは「当初額 → 正当額」の対比が主役。請求しても直ちに還付されず、機構の審査・減額更正を経て確定する建付けを、画面下部のステータストラッカーで明示します。</p>
+    <div class="frame">
+      <div class="chrome"><span class="dots"><i></i><i></i><i></i></span><span class="urlbar">https://portal.gxa.go.jp/levy/refund/correction/new</span></div>
+      <div class="appbar"><span class="logo">GX推進機構 賦課金ポータル<small>事業者用</small></span><span class="user">〇〇石油株式会社</span></div>
+      <div class="layout">
+        <nav class="nav">
+          <a href="#">ホーム</a>
+          <a href="#">賦課金申告・納付</a>
+          <a href="#" class="on">還付申請</a>
+          <a href="#">届出情報の管理</a>
+          <a href="#">通知書一覧</a>
+        </nav>
+        <div class="main">
+          <p class="crumb">還付申請 &gt; 過納還付 &gt; 更正の請求(新規)</p>
+          <h3>賦課金額の更正の請求</h3>
+
+          <div class="formgrid">
+            <div class="field">
+              <label>対象申告<span class="req">必須</span></label>
+              <select class="select"><option>LV-2028-000482｜2028年度 第1期(納付日 2028-09-30)</option></select>
+            </div>
+            <div class="field">
+              <label>請求理由の区分<span class="req">必須</span></label>
+              <select class="select"><option>CO₂換算量の計算誤り</option></select>
+              <span class="hint">計算誤り / 数量の誤り / 二重納付 / 後発的事由 ほか</span>
+            </div>
+          </div>
+
+          <div class="diff">
+            <div class="diffbox">
+              <h5>当初の賦課金額(確定済)</h5>
+              <div class="amt">214,000,000 円</div>
+              <span class="hint">CO₂量 85,600 t-CO₂</span>
+            </div>
+            <div class="diffarrow">→</div>
+            <div class="diffbox new">
+              <h5>請求する正当な賦課金額</h5>
+              <div class="amt">201,915,000 円</div>
+              <span class="hint">CO₂量 80,766 t-CO₂(修正後)</span>
+            </div>
+          </div>
+
+          <div class="calc">
+            <h5>過納額(還付請求額)</h5>
+            <table>
+              <tr><td>過納額</td><td class="num"><b>12,085,000 円</b></td></tr>
+              <tr><td>還付加算金</td><td class="num">減額更正の確定後に機構が計算して加算(利率は政省令で規定)</td></tr>
+            </table>
+            <p class="formula">請求どおりの還付を保証するものではありません。機構の審査の結果、減額更正された額が還付されます。</p>
+          </div>
+
+          <div class="field full" style="margin-top:1.2rem">
+            <label>請求理由の詳細<span class="req">必須</span></label>
+            <textarea class="ta">輸入通関データの取り込み誤りにより、LNG 4,834tを重複計上していたため。根拠資料として修正後の輸入実績一覧を添付する。</textarea>
+            <span class="hint">立証責任は請求者側にあります。根拠資料を必ず添付してください。</span>
+          </div>
+
+          <h3 style="margin-top:1.8rem;font-size:.95rem">この請求の処理フロー</h3>
+          <div class="track">
+            <span class="tnode done"><i></i>請求受付<small>事業者</small></span>
+            <span class="tnode now"><i></i>審査<small>GX推進機構</small></span>
+            <span class="tnode"><i></i>減額更正・通知<small>機構 → 事業者</small></span>
+            <span class="tnode"><i></i>還付額確定<small>過納額+加算金</small></span>
+            <span class="tnode"><i></i>振込<small>届出口座へ</small></span>
+          </div>
+
+          <div class="actions">
+            <button class="btn ghost">下書き保存</button>
+            <button class="btn lg">請求内容の確認へ</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ SCREEN D ============ -->
+  <section class="screen">
+    <div class="screen-head"><span class="screen-tag">画面D</span><h2>還付申請 一覧(ステータス管理)</h2></div>
+    <p class="screen-note">両系統の申請を1つの一覧に集約し、状態はピルで即読できるようにします。「差戻し」は要対応として最上段へ。</p>
+    <div class="frame">
+      <div class="chrome"><span class="dots"><i></i><i></i><i></i></span><span class="urlbar">https://portal.gxa.go.jp/levy/refund/list</span></div>
+      <div class="appbar"><span class="logo">GX推進機構 賦課金ポータル<small>事業者用</small></span><span class="user">〇〇石油株式会社</span></div>
+      <div class="layout">
+        <nav class="nav">
+          <a href="#">ホーム</a>
+          <a href="#">賦課金申告・納付</a>
+          <a href="#" class="on">還付申請</a>
+          <a href="#">届出情報の管理</a>
+          <a href="#">通知書一覧</a>
+        </nav>
+        <div class="main">
+          <p class="crumb">還付申請 &gt; 申請一覧</p>
+          <h3>申請一覧</h3>
+          <div class="tblwrap">
+            <table>
+              <thead>
+                <tr><th>申請番号</th><th>種別</th><th>対象年度</th><th class="num">請求・申請額(円)</th><th class="num">確定還付額(円)</th><th>状態</th><th>最終更新</th><th></th></tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>RF-2029-0102</td><td>用途還付(輸出)</td><td>2028</td>
+                  <td class="num">89,400,000</td><td class="num">—</td>
+                  <td><span class="pill p-back">差戻し(証憑不備)</span></td><td>2029-04-02</td>
+                  <td><a class="rowlink" href="#">修正する</a></td>
+                </tr>
+                <tr>
+                  <td>RF-2029-0087</td><td>過納還付(更正の請求)</td><td>2028</td>
+                  <td class="num">12,085,000</td><td class="num">—</td>
+                  <td><span class="pill p-review">審査中</span></td><td>2029-03-28</td>
+                  <td><a class="rowlink" href="#">詳細</a></td>
+                </tr>
+                <tr>
+                  <td>RF-2029-0051</td><td>用途還付(原料用途)</td><td>2028</td>
+                  <td class="num">12,080,000</td><td class="num">12,080,000</td>
+                  <td><span class="pill p-fixed">還付額確定</span></td><td>2029-03-15</td>
+                  <td><a class="rowlink" href="#">通知書</a></td>
+                </tr>
+                <tr>
+                  <td>RF-2029-0012</td><td>用途還付(輸出)</td><td>2028</td>
+                  <td class="num">8,940,000</td><td class="num">8,940,000</td>
+                  <td><span class="pill p-done">還付済(振込完了)</span></td><td>2029-02-20</td>
+                  <td><a class="rowlink" href="#">通知書</a></td>
+                </tr>
+                <tr>
+                  <td>—</td><td>過納還付(更正の請求)</td><td>2028</td>
+                  <td class="num">(入力中)</td><td class="num">—</td>
+                  <td><span class="pill p-draft">下書き</span></td><td>2029-04-05</td>
+                  <td><a class="rowlink" href="#">再開</a></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <p class="legend">状態の遷移:下書き → 申請済 → 審査中 →(差戻し ⇄ 修正)→ 還付額確定(過納は減額更正通知)→ 還付済。確定・還付の各時点で通知書が発行されます。</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="foot">化石燃料賦課金 還付画面イメージ(調査ベースの設計案)｜数値・期限・利率はすべて仮置き。政省令の公布後に要件を確定してください。</div>
+</div>
