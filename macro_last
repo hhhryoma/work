@@ -13,6 +13,8 @@ Option Explicit
 '         … 配置位置(頁→上端)順で通番付与＋一覧反映
 '    2) 確認事項_ファイルを選んでPage全体通番に振り直す
 '         … Pageごとの既存番号を尊重し、ブック全体の連番へ変換（一覧も追従）
+'    3) 確認事項_ファイルを選んでリンクだけ更新
+'         … 採番・本文・並べ替えはせず、一覧↔吹き出しのリンクだけ張り直す
 '
 '  対象：Pageシート上の「吹き出し」で本文が #X： で始まるもの
 '        表記ゆれ対応 → # / ＃ , 半角/全角数字 , 半角/全角コロン , 前後空白
@@ -48,6 +50,10 @@ End Sub
 
 Public Sub 確認事項_ファイルを選んでPage全体通番に振り直す()
     ProcessFiles "LOCAL"
+End Sub
+
+Public Sub 確認事項_ファイルを選んでリンクだけ更新()
+    ProcessFiles "LINK"
 End Sub
 
 
@@ -122,8 +128,13 @@ Private Sub ProcessFiles(ByVal mode As String)
     Next i
 
     RestoreApp prevSU, prevEV, prevDA, prevAS
-    MsgBox "処理結果：" & vbCrLf & vbCrLf & log, vbInformation, _
-           IIf(mode = "LOCAL", "Page全体通番に振り直し", "確認事項一覧を更新")
+    Dim ttl As String
+    Select Case mode
+        Case "LOCAL": ttl = "Page全体通番に振り直し"
+        Case "LINK":  ttl = "リンク列だけ更新"
+        Case Else:    ttl = "確認事項一覧を更新"
+    End Select
+    MsgBox "処理結果：" & vbCrLf & vbCrLf & log, vbInformation, ttl
     Exit Sub
 
 Fail:
@@ -168,6 +179,11 @@ Private Function ProcessOneWorkbook(wb As Workbook, ByVal mode As String) As Str
     EnsureKeyColumn wsList
     EnsureUniqueShapeNames wb       ' 同名図形を解消（同名だと Shapes(name) が片方しか返さずリンクが付かない）
 
+    If mode = "LINK" Then           ' リンクだけ更新（採番・本文・並べ替えはしない）
+        ProcessOneWorkbook = RefreshLinksOnly(wb, wsList)
+        Exit Function
+    End If
+
     Dim items As Collection: Set items = CollectShapes(wb)
     If items.Count = 0 Then
         ProcessOneWorkbook = "対象の吹き出し（#X：…）無し"
@@ -179,6 +195,73 @@ Private Function ProcessOneWorkbook(wb As Workbook, ByVal mode As String) As Str
     report = ProcessOrdered(wb, wsList, arr)
     ProcessOneWorkbook = UBound(arr) & " 件処理"
     If Len(report) > 0 Then ProcessOneWorkbook = ProcessOneWorkbook & report
+End Function
+
+' リンクだけ更新：採番・本文・並べ替えは行わず、既存の _Key（"シート名|図形名"）から
+' 現在の図形位置を引いて、一覧↔吹き出しのハイパーリンクを張り直すだけ。
+'   ・C列（一覧→吹き出し）… 図形の左上セルへジャンプ
+'   ・図形側（吹き出し→一覧セル）… その行の確認事項セルへジャンプ
+' 図形が見つからない行は失敗として記録（一覧側は書き換えない）。
+Private Function RefreshLinksOnly(wb As Workbook, wsList As Worksheet) As String
+    Dim lastRow As Long, r As Long, k As String, p As Long
+    Dim wsName As String, shpName As String
+    Dim targetWs As Worksheet, targetShp As Shape
+    Dim anchor As String, emsg As String, okCount As Long
+    Dim linkFail As Collection: Set linkFail = New Collection
+
+    lastRow = LastDataRow(wsList)
+    For r = FIRST_DATA_ROW To lastRow
+        k = CStr(wsList.Cells(r, KEY_COL).Value)
+        If Len(k) > 0 Then
+            p = InStrRev(k, "|")
+            If p >= 2 Then
+                wsName = Left$(k, p - 1)
+                shpName = Mid$(k, p + 1)
+
+                Set targetWs = Nothing
+                On Error Resume Next
+                Set targetWs = wb.Worksheets(wsName)
+                On Error GoTo 0
+
+                If targetWs Is Nothing Then
+                    linkFail.Add wsName & "!" & shpName & " : シートが見つからない"
+                Else
+                    Set targetShp = Nothing
+                    On Error Resume Next
+                    Set targetShp = targetWs.Shapes(shpName)
+                    On Error GoTo 0
+
+                    If targetShp Is Nothing Then
+                        linkFail.Add wsName & "!" & shpName & " : 図形が見つからない（名前変更/削除？）"
+                    Else
+                        ' 一覧→吹き出し（C列）
+                        On Error Resume Next
+                        anchor = "'" & EscapeSheet(wsName) & "'!" & targetShp.TopLeftCell.Address(False, False)
+                        SetCellLink wsList, r, COL_LINK, anchor, wsName
+                        targetShp.OnAction = ""
+                        On Error GoTo 0
+                        ' 吹き出し→一覧セル（図形のハイパーリンク）
+                        emsg = SetShapeLink(targetWs, targetShp, _
+                            "'" & EscapeSheet(wsList.Name) & "'!" & wsList.Cells(r, COL_ITEM).Address(False, False))
+                        If Len(emsg) > 0 Then
+                            linkFail.Add wsName & "!" & shpName & " : " & emsg
+                        Else
+                            okCount = okCount + 1
+                        End If
+                    End If
+                End If
+            End If
+        End If
+    Next r
+
+    RefreshLinksOnly = okCount & " 件のリンクを更新"
+    Dim m As Long
+    If linkFail.Count > 0 Then
+        RefreshLinksOnly = RefreshLinksOnly & "（" & linkFail.Count & " 件失敗）"
+        For m = 1 To linkFail.Count
+            RefreshLinksOnly = RefreshLinksOnly & vbCrLf & "      - " & linkFail(m)
+        Next m
+    End If
 End Function
 
 
