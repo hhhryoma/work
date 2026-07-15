@@ -1,0 +1,193 @@
+<title>納付フローのシステム境界(本システム/ADAMS)</title>
+<style>
+  :root{
+    --ground:#f7f8f7; --panel:#ffffff; --ink:#1c2422; --ink-2:#5a6663; --line:#dde3e0;
+    --kikou:#0e6a58; --kikou-soft:#e3f0ec;
+    --adams:#2b4a6f; --adams-soft:#e7edf4;
+    --biz:#68716e; --biz-soft:#eceeed;
+    --bank:#7a5f8a; --bank-soft:#efe9f3;
+    --warn:#9a6a00; --warn-bg:#faf0d6; --info:#175a8c; --info-bg:#e2eef7;
+    --bad:#b3362b; --bad-bg:#fbe7e4;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{ --ground:#151a19; --panel:#1e2523; --ink:#e8edeb; --ink-2:#9aa6a2; --line:#333d3a;
+      --kikou:#4fb59c; --kikou-soft:#20332e; --adams:#7da3cc; --adams-soft:#1f2a38;
+      --biz:#a3adaa; --biz-soft:#2a3230; --bank:#b79cc7; --bank-soft:#2e2535;
+      --warn:#e3b95a; --warn-bg:#37301c; --info:#7db6e0; --info-bg:#1c2f3d;
+      --bad:#ef8d82; --bad-bg:#3b211e; }
+  }
+  :root[data-theme="dark"]{ --ground:#151a19; --panel:#1e2523; --ink:#e8edeb; --ink-2:#9aa6a2; --line:#333d3a;
+    --kikou:#4fb59c; --kikou-soft:#20332e; --adams:#7da3cc; --adams-soft:#1f2a38;
+    --biz:#a3adaa; --biz-soft:#2a3230; --bank:#b79cc7; --bank-soft:#2e2535;
+    --warn:#e3b95a; --warn-bg:#37301c; --info:#7db6e0; --info-bg:#1c2f3d; --bad:#ef8d82; --bad-bg:#3b211e; }
+  :root[data-theme="light"]{ --ground:#f7f8f7; --panel:#ffffff; --ink:#1c2422; --ink-2:#5a6663; --line:#dde3e0;
+    --kikou:#0e6a58; --kikou-soft:#e3f0ec; --adams:#2b4a6f; --adams-soft:#e7edf4;
+    --biz:#68716e; --biz-soft:#eceeed; --bank:#7a5f8a; --bank-soft:#efe9f3;
+    --warn:#9a6a00; --warn-bg:#faf0d6; --info:#175a8c; --info-bg:#e2eef7; --bad:#b3362b; --bad-bg:#fbe7e4; }
+  *{box-sizing:border-box}
+  body{background:var(--ground);color:var(--ink);margin:0;padding:2.5rem 1.25rem 5rem;
+    font-family:"Hiragino Kaku Gothic ProN","Hiragino Sans","Yu Gothic UI","Yu Gothic","Meiryo",system-ui,sans-serif;
+    line-height:1.6;font-size:15px}
+  .wrap{max-width:1080px;margin:0 auto}
+  h1{font-size:1.5rem;margin:0 0 .35rem;text-wrap:balance}
+  .lede{color:var(--ink-2);max-width:52em;margin:0 0 .75rem}
+  .disclaimer{font-size:.8rem;color:var(--ink-2);background:var(--panel);border:1px solid var(--line);
+    border-radius:6px;padding:.6rem .9rem;margin:1rem 0 2rem;max-width:62em}
+  h2{font-size:1.05rem;margin:2.2rem 0 .6rem}
+
+  .board{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:1rem;overflow-x:auto}
+  .lanes{display:grid;grid-template-columns:1fr 1.25fr 1.25fr 1fr;gap:0 .8rem;min-width:840px;position:relative}
+  .lane-h{position:sticky;top:0;font-size:.8rem;font-weight:800;text-align:center;padding:.45rem .5rem;border-radius:6px;margin-bottom:.6rem}
+  .lane-h.biz{background:var(--biz-soft);color:var(--biz)}
+  .lane-h.kikou{background:var(--kikou-soft);color:var(--kikou)}
+  .lane-h.adams{background:var(--adams-soft);color:var(--adams)}
+  .lane-h.bank{background:var(--bank-soft);color:var(--bank)}
+  .lane-h small{display:block;font-weight:500;font-size:.66rem;opacity:.85}
+
+  .phase{grid-column:1/-1;font-size:.7rem;font-weight:700;letter-spacing:.08em;color:var(--ink-2);
+    border-bottom:1px dashed var(--line);padding:.7rem 0 .2rem;margin-bottom:.35rem}
+  .row{grid-column:1/-1;display:grid;grid-template-columns:subgrid;align-items:center;margin:.22rem 0}
+  .box{border:1.5px solid var(--line);border-radius:7px;padding:.4rem .6rem;font-size:.76rem;line-height:1.45;background:var(--panel)}
+  .box b{display:block;font-size:.78rem}
+  .box small{color:var(--ink-2);font-size:.68rem}
+  .box.biz{border-color:var(--biz)}
+  .box.kikou{border-color:var(--kikou);background:color-mix(in srgb, var(--kikou-soft) 45%, var(--panel))}
+  .box.adams{border-color:var(--adams);background:color-mix(in srgb, var(--adams-soft) 45%, var(--panel))}
+  .box.bank{border-color:var(--bank)}
+  .num{display:inline-flex;width:1.25rem;height:1.25rem;border-radius:50%;background:var(--ink);color:var(--ground);
+    font-size:.68rem;font-weight:800;align-items:center;justify-content:center;margin-right:.35rem;vertical-align:middle;flex-shrink:0}
+  .arr{height:0;border-top:2px solid var(--ink-2);position:relative;margin:0 .1rem;opacity:.75}
+  .arr.r::after{content:"";position:absolute;right:-1px;top:-5px;border:4px solid transparent;border-left:7px solid var(--ink-2)}
+  .arr.l::before{content:"";position:absolute;left:-1px;top:-5px;border:4px solid transparent;border-right:7px solid var(--ink-2)}
+  .arr span{position:absolute;top:-1.25em;left:50%;transform:translateX(-50%);font-size:.64rem;color:var(--ink-2);white-space:nowrap;background:var(--panel);padding:0 .3rem}
+  .arr.if{border-top-style:dashed;border-top-color:var(--bad)}
+  .arr.if span{color:var(--bad);font-weight:700}
+
+  .legend{display:flex;gap:1.2rem;flex-wrap:wrap;font-size:.75rem;color:var(--ink-2);margin:.8rem 0 0}
+  .legend i{display:inline-block;width:1.6em;border-top:2px solid var(--ink-2);vertical-align:middle;margin-right:.3em}
+  .legend i.if{border-top-style:dashed;border-top-color:var(--bad)}
+
+  table{border-collapse:collapse;width:100%;font-size:.82rem}
+  .tblwrap{overflow-x:auto;border:1px solid var(--line);border-radius:8px;margin-top:.7rem;background:var(--panel)}
+  th{font-size:.72rem;color:var(--ink-2);text-align:left;font-weight:700;padding:.5rem .75rem;border-bottom:1px solid var(--line)}
+  td{padding:.5rem .75rem;border-bottom:1px solid var(--line);vertical-align:top}
+  tr:last-child td{border-bottom:none}
+  .alert{display:flex;gap:.6rem;font-size:.8rem;border-radius:6px;padding:.6rem .9rem;margin-top:1rem;align-items:flex-start;max-width:62em}
+  .alert.warn{color:var(--warn);background:var(--warn-bg)}
+  .alert.info{color:var(--info);background:var(--info-bg)}
+  .alert b{flex-shrink:0}
+  .foot{border-top:1px solid var(--line);margin-top:3rem;padding-top:1rem;font-size:.75rem;color:var(--ink-2)}
+</style>
+
+<div class="wrap">
+  <h1>納付フローのシステム境界 — 本システム/ADAMS</h1>
+  <p class="lede">賦課確定から消込・還付までの納付関連フローを、担当システム別のスイムレーンで図示。<b style="color:var(--bad)">赤の破線がシステム境界を越えるIF連携</b>(IF-1o/IF-1a)です。ADAMS前提(IF仕様書§6)に基づきます。</p>
+  <div class="disclaimer">※ ADAMS(官庁会計システム)側の内部処理は公開情報からの推定を含みます(IF仕様書§6.2.1)。案A'(調定連携)は経産省協議前の暫定想定(#1)です。</div>
+
+  <div class="board">
+    <div class="lanes">
+      <div class="lane-h biz">事業者<small>化石燃料輸入事業者等</small></div>
+      <div class="lane-h kikou">本システム<small>GX推進機構 賦課金管理</small></div>
+      <div class="lane-h adams">ADAMS<small>経産省 歳入徴収官(官庁会計システム)</small></div>
+      <div class="lane-h bank">金融機関・日銀<small>窓口/ペイジー(REPS・MPN)</small></div>
+
+      <div class="phase">フェーズA|賦課確定(本システム)</div>
+      <div class="row">
+        <div class="box biz"><span class="num">1</span><b>賦課金申告(P-3)</b><small>月次・CSV実績添付</small></div>
+        <div class="arr r" style="grid-column:1/2;display:none"></div>
+        <div class="box kikou"><span class="num">2</span><b>審査・承認 → 債権確定</b><small>G-3承認で債権発生・債権キー採番</small></div>
+        <div></div><div></div>
+      </div>
+
+      <div class="phase">フェーズB|調定・納入告知(境界を越える往復)</div>
+      <div class="row">
+        <div></div>
+        <div class="box kikou"><span class="num">3</span><b>IF-1o 調定依頼</b><small>債権キー・額・納期限|日次18:00</small></div>
+        <div class="box adams"><span class="num">4</span><b>調定 → 納入告知書番号 採番</b><small>歳入徴収官事務</small></div>
+        <div></div>
+      </div>
+      <div class="row">
+        <div></div>
+        <div class="arr if l" style="grid-column:2/3"><span>採番結果 返送</span></div>
+        <div class="box adams"><span class="num">5</span><b>採番結果の返送</b><small>本システムは債権キー×告知書番号の対応表を保持</small></div>
+        <div></div>
+      </div>
+      <div class="row">
+        <div class="box biz"><span class="num">6</span><b>納入告知書を受領</b><small>納付書発行は本システム対象外(ADAMS側)</small></div>
+        <div></div>
+        <div class="arr l" style="grid-column:2/4"><span>納入告知書 送付</span></div>
+        <div></div>
+      </div>
+
+      <div class="phase">フェーズC|納付・収納(本システムは関与しない)</div>
+      <div class="row">
+        <div class="box biz"><span class="num">7</span><b>納付</b><small>窓口(告知書) or ペイジー電子納付</small></div>
+        <div></div><div></div>
+        <div class="box bank"><span class="num">8</span><b>収納 → 領収済通知</b><small>日銀・歳入代理店 → ADAMSへ</small></div>
+      </div>
+      <div class="row">
+        <div></div><div></div>
+        <div class="box adams"><span class="num">9</span><b>マッチング(消込・第1層)</b><small>納入告知書番号 × 収納の突合はADAMSの本来機能</small></div>
+        <div class="arr l" style="grid-column:4/5;display:none"></div>
+      </div>
+
+      <div class="phase">フェーズD|連携・債権充当(本システム)</div>
+      <div class="row">
+        <div></div>
+        <div class="box kikou"><span class="num">11</span><b>債権充当(消込・第2層)</b><small>残高更新・完納判定・延滞金確定・過納検知→還付起票(B01)</small></div>
+        <div class="arr if l" style="grid-column:2/3"><span>IF-1a 収納済通知データ</span></div>
+        <div></div>
+      </div>
+      <div class="row">
+        <div class="box biz"><span class="num">12</span><b>納付状況を確認(P-4)</b><small>反映は収納から数営業日(猶予日数パラメータ)</small></div>
+        <div class="arr l" style="grid-column:1/2;display:none"></div>
+        <div></div><div></div><div></div>
+      </div>
+
+      <div class="phase">フェーズE|例外・付随フロー</div>
+      <div class="row">
+        <div></div>
+        <div class="box kikou"><span class="num">13</span><b>更正・延納の確定(G-4/G-8)</b><small>債権を動かしたら調定側を同期</small></div>
+        <div class="box adams"><span class="num">14</span><b>調定変更(増額/減額・期限)</b><small>IF-1o 処理区分2=調定変更依頼</small></div>
+        <div></div>
+      </div>
+      <div class="row">
+        <div></div>
+        <div class="box kikou"><span class="num">16</span><b>逆仕訳・状態再計算</b><small>進行中の還付は自動「停止」</small></div>
+        <div class="box adams"><span class="num">15</span><b>過誤納整理・返納</b><small>IF-1a 取消レコードで連携</small></div>
+        <div></div>
+      </div>
+      <div class="row">
+        <div class="box biz"><span class="num">18</span><b>還付金を受領</b><small>届出口座へ入金</small></div>
+        <div class="box kikou"><span class="num">17</span><b>還付支払(G-6)</b><small>全銀振込(IF-5)。<b>ADAMSを経由しない</b>|二重返金防止の責任分界</small></div>
+        <div></div><div></div>
+      </div>
+    </div>
+    <div class="legend">
+      <span><i class="if"></i>システム境界を越えるIF連携(IF-1o/IF-1a)</span>
+      <span><i></i>書類・資金の流れ</span>
+    </div>
+  </div>
+
+  <h2>境界の整理(どこまでが本システムか)</h2>
+  <div class="tblwrap">
+    <table>
+      <thead><tr><th>処理</th><th>本システム(機構)</th><th>ADAMS(経産省)</th></tr></thead>
+      <tbody>
+        <tr><td>債権の確定(申告審査・決定・更正)</td><td>⭕ ①②⑬</td><td>—</td></tr>
+        <tr><td>調定・納入告知書(納付書)の発行</td><td>❌ 対象外</td><td>⭕ ④⑥(発行主体は歳入徴収官)</td></tr>
+        <tr><td>収納の受入・入金と請求のマッチング</td><td>❌ 不要(名寄せなし)</td><td>⭕ ⑧⑨(消込・第1層)</td></tr>
+        <tr><td>債権への充当・状態管理・延滞金・過納検知</td><td>⭕ ⑪(消込・第2層)</td><td>—(機構の債権イベントを知らない)</td></tr>
+        <tr><td>取消(過誤納整理)の発生</td><td>受領側 ⑯</td><td>発生側 ⑮</td></tr>
+        <tr><td>還付の支払</td><td>⭕ ⑰ 全銀で直接振込</td><td>❌ 経由しない(返金指示も流さない)</td></tr>
+        <tr><td>督促状の発行</td><td>❌ 対象外(滞納の把握・抽出のみ)</td><td>△ 歳入徴収官の督促実務(協議)</td></tr>
+        <tr><td>帳簿間の整合</td><td colspan="2">月次残高照合(機構帳簿 ⇄ 国庫収納累計)を双方で実施</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="alert info"><b>ℹ</b><span>番号⑩(欠番に見える箇所)はIF-1aの送信そのもの(ADAMS→本システム、日次6:00送信・7:00取込)。図では矢印ラベルとして表現しています。</span></div>
+  <div class="alert warn"><b>⚠</b><span>本図は暫定想定#1(案A'=調定連携)・#2(ADAMS収納)に基づく設計仮説です。経産省協議で「調定依頼への機構キー持込み可否」「採番結果返送の方式」「督促の実務分担」が確定した時点で更新してください(課題#1・#50)。</span></div>
+
+  <div class="foot">納付フローのシステム境界図|IF仕様書_経産省連携.md §6 対応|数値・時刻・方式はすべて協議前の仮置き。</div>
+</div>
