@@ -1,0 +1,217 @@
+<title>化石燃料賦課金 通知書イメージ案</title>
+<style>
+  :root{
+    --ground:#f2f3f2; --ink:#1c2422; --ink-2:#5a6663; --line:#dde3e0;
+    --accent:#0e6a58; --panel:#ffffff;
+    --warn:#9a6a00; --warn-bg:#faf0d6; --info:#175a8c; --info-bg:#e2eef7;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{ --ground:#151a19; --ink:#e8edeb; --ink-2:#9aa6a2; --line:#333d3a;
+      --accent:#4fb59c; --panel:#1e2523;
+      --warn:#e3b95a; --warn-bg:#37301c; --info:#7db6e0; --info-bg:#1c2f3d; }
+  }
+  :root[data-theme="dark"]{ --ground:#151a19; --ink:#e8edeb; --ink-2:#9aa6a2; --line:#333d3a;
+    --accent:#4fb59c; --panel:#1e2523; --warn:#e3b95a; --warn-bg:#37301c; --info:#7db6e0; --info-bg:#1c2f3d; }
+  :root[data-theme="light"]{ --ground:#f2f3f2; --ink:#1c2422; --ink-2:#5a6663; --line:#dde3e0;
+    --accent:#0e6a58; --panel:#ffffff; --warn:#9a6a00; --warn-bg:#faf0d6; --info:#175a8c; --info-bg:#e2eef7; }
+  *{box-sizing:border-box}
+  body{background:var(--ground);color:var(--ink);margin:0;padding:2.5rem 1.25rem 5rem;
+    font-family:"Hiragino Kaku Gothic ProN","Hiragino Sans","Yu Gothic UI","Yu Gothic","Meiryo",system-ui,sans-serif;
+    line-height:1.65;font-size:15px}
+  .wrap{max-width:860px;margin:0 auto}
+  h1{font-size:1.5rem;margin:0 0 .35rem;text-wrap:balance}
+  .lede{color:var(--ink-2);max-width:46em;margin:0 0 .75rem}
+  .disclaimer{font-size:.8rem;color:var(--ink-2);background:var(--panel);border:1px solid var(--line);
+    border-radius:6px;padding:.6rem .9rem;margin:1rem 0 2.5rem;max-width:60em}
+  .doc{margin:0 0 3.5rem}
+  .doc-head{display:flex;align-items:baseline;gap:.75rem;margin-bottom:.35rem;flex-wrap:wrap}
+  .doc-tag{font-size:.72rem;font-weight:700;letter-spacing:.08em;color:var(--accent);
+    border:1px solid var(--accent);border-radius:4px;padding:.1rem .5rem;white-space:nowrap}
+  .doc-head h2{font-size:1.1rem;margin:0}
+  .biz{font-size:.7rem;color:var(--ink-2);background:var(--panel);border:1px solid var(--line);border-radius:99px;padding:.08rem .6rem}
+  .doc-note{color:var(--ink-2);font-size:.85rem;margin:0 0 1.1rem;max-width:56em}
+
+  /* ---- A4 sheet: 紙面は意図的にライト固定(公文書の見た目を両テーマで統一) ---- */
+  .sheet{background:#fff;color:#1a1a1a;max-width:760px;margin:0 auto;padding:3.2rem 3.4rem 2.6rem;
+    box-shadow:0 2px 6px rgba(0,0,0,.14), 0 12px 32px rgba(0,0,0,.10);
+    font-family:"Hiragino Mincho ProN","Yu Mincho","MS PMincho",serif;
+    font-size:.92rem;line-height:1.9;position:relative;overflow:hidden}
+  .wm{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none}
+  .wm span{font-size:4.2rem;font-weight:800;color:rgba(180,60,60,.08);transform:rotate(-24deg);
+    letter-spacing:.2em;white-space:nowrap;font-family:inherit}
+  .docno{text-align:right;margin:0 0 .1rem}
+  .docdate{text-align:right;margin:0 0 1.4rem}
+  .to{margin:0 0 1.2rem}
+  .to .name{font-size:1.02rem}
+  .from{text-align:right;margin:0 0 1.6rem;position:relative}
+  .seal{display:inline-block;border:2px solid rgba(180,60,60,.55);color:rgba(180,60,60,.55);
+    width:3.2em;height:3.2em;font-size:.7rem;line-height:1.25;text-align:center;padding-top:.55em;
+    vertical-align:middle;margin-left:.6rem;letter-spacing:.1em}
+  .title{text-align:center;font-size:1.15rem;font-weight:700;letter-spacing:.06em;margin:0 0 1.4rem}
+  .body p{margin:0 0 .9rem;text-indent:1em}
+  .ki{text-align:center;font-weight:700;margin:1.2rem 0 .8rem}
+  table.dt{border-collapse:collapse;width:100%;font-size:.88rem;margin:0 0 1.1rem}
+  table.dt th,table.dt td{border:1px solid #555;padding:.35rem .6rem}
+  table.dt th{background:#f2f0ea;font-weight:700;text-align:center;white-space:nowrap}
+  table.dt td.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+  table.dt tr.total td{font-weight:700;background:#faf9f5}
+  .kv{width:100%;border-collapse:collapse;font-size:.9rem;margin:0 0 1.1rem}
+  .kv th{width:11em;text-align:left;font-weight:700;padding:.25rem .4rem;vertical-align:top;white-space:nowrap}
+  .kv td{padding:.25rem .4rem}
+  .kyoji{border:1.5px solid #555;padding:.8rem 1rem;font-size:.82rem;line-height:1.8;margin:1.4rem 0 .6rem}
+  .kyoji b{display:block;margin-bottom:.2rem}
+  .sheet .note{font-size:.78rem;color:#555;margin-top:1rem}
+  .sheet .contact{font-size:.8rem;text-align:right;margin-top:1.2rem;border-top:1px solid #999;padding-top:.5rem}
+
+  .callouts{max-width:760px;margin:1rem auto 0;display:flex;flex-direction:column;gap:.5rem}
+  .co{display:flex;gap:.6rem;font-size:.8rem;border-radius:6px;padding:.55rem .9rem;align-items:flex-start}
+  .co.warn{color:var(--warn);background:var(--warn-bg)}
+  .co.info{color:var(--info);background:var(--info-bg)}
+  .co b{flex-shrink:0}
+  .foot{border-top:1px solid var(--line);margin-top:3rem;padding-top:1rem;font-size:.75rem;color:var(--ink-2)}
+  @media (max-width:640px){ .sheet{padding:2rem 1.2rem} }
+</style>
+
+<div class="wrap">
+  <h1>化石燃料賦課金 通知書イメージ案(R03・R05・R07)</h1>
+  <p class="lede">帳票定義_通知書.md の項目定義を紙面レイアウトに起こしたイメージです。画面モックと同一のサンプルシナリオ(〇〇石油の減額更正→還付)でつながっています。処分性のある通知の構成要素 — 文書番号・交付日・根拠・内訳・<b>教示文</b> — の配置確認が目的です。</p>
+  <div class="disclaimer">※ 本ページは<b>設計検討用のサンプル</b>であり、実在の交付文書ではありません。条文番号・利率・期限・様式は政省令公布前の仮置き(暫定想定集ベース)。教示文の文言は課題#17確定まで対外交付不可。公印は印影画像+文書番号Web照会方式(#16)を想定。</div>
+
+  <!-- ============ R03 ============ -->
+  <section class="doc">
+    <div class="doc-head"><span class="doc-tag">R03</span><h2>賦課金額決定通知書(職権決定)</h2><span class="biz">出力契機: C-1 職権決定|G-4</span></div>
+    <p class="doc-note">無申告事業者への職権決定。納付番号・納期限の記載は課題#14(IF-1o案A前提で「記載する」が暫定想定)。</p>
+    <div class="sheet">
+      <div class="wm"><span>設計イメージ・サンプル</span></div>
+      <p class="docno">機構収第2028-000145号</p>
+      <p class="docdate">2028年10月5日</p>
+      <div class="to">
+        <div class="name">△△エナジー株式会社<br>代表取締役 ○○ ○○ 殿</div>
+        <div style="font-size:.8rem;color:#555">(事業者番号 F-102401)</div>
+      </div>
+      <div class="from">脱炭素成長型経済構造移行推進機構<br>理事長 ○○ ○○<span class="seal">機構之印</span></div>
+      <p class="title">化石燃料賦課金の賦課金額の決定について(通知)</p>
+      <div class="body">
+        <p>脱炭素成長型経済構造への円滑な移行の推進に関する法律第○条の規定に基づき、下記のとおり賦課金額を決定したので通知します。</p>
+      </div>
+      <p class="ki">記</p>
+      <table class="kv">
+        <tr><th>対象期間</th><td>2028年度 6月分</td></tr>
+        <tr><th>決定番号</th><td>LV-2028-000520</td></tr>
+        <tr><th>決定の理由</th><td>申告期限までに申告書の提出がなかったため、当機構の調査(輸入通関実績)に基づき賦課金額を決定したものです。</td></tr>
+      </table>
+      <table class="dt">
+        <thead><tr><th>燃料種別</th><th>数量</th><th>CO₂換算量(t-CO₂)</th><th>単価(円/t-CO₂)</th><th>賦課金額(円)</th></tr></thead>
+        <tbody>
+          <tr><td>一般炭</td><td class="num">16,523.605 t</td><td class="num">38,500.000</td><td class="num">2,500</td><td class="num">96,250,000</td></tr>
+          <tr class="total"><td colspan="4">決定賦課金額 合計</td><td class="num">96,250,000</td></tr>
+        </tbody>
+      </table>
+      <table class="kv">
+        <tr><th>納付番号</th><td>PN-2028-0052001</td></tr>
+        <tr><th>納期限</th><td>2028年11月6日(火)</td></tr>
+        <tr><th>納付方法</th><td>納付番号を用いて所定の方法により納付してください(詳細は別添の納付案内をご覧ください)。</td></tr>
+      </table>
+      <div class="kyoji">
+        <b>【教示】</b>
+        この処分に不服がある場合は、この通知を受けた日の翌日から起算して3か月以内に、経済産業大臣に対して審査請求をすることができます。(※文言・申立先は仮置き)
+      </div>
+      <p class="note">本通知の真正性は、機構ポータルの文書番号照会(https://portal.gxa.go.jp/verify)で確認できます。</p>
+      <p class="contact">担当: 徴収部 賦課第一課|03-XXXX-XXXX</p>
+    </div>
+    <div class="callouts">
+      <div class="co warn"><b>⚠</b><span>納付番号・納期限の記載可否はIF-1o協議(課題#1・#14)に依存。案Bになった場合はこのブロックを削除し名寄せ用情報に差し替え。</span></div>
+      <div class="co info"><b>ℹ</b><span>決定の理由の記載は処分の理由付記義務への対応。内訳表は申告明細(F02)と同一構造で、G-4の決定内容から自動転記。</span></div>
+    </div>
+  </section>
+
+  <!-- ============ R05 ============ -->
+  <section class="doc">
+    <div class="doc-head"><span class="doc-tag">R05</span><h2>更正通知書(減額)</h2><span class="biz">出力契機: C-2 減額更正の確定|G-4</span></div>
+    <p class="doc-note">更正の請求(RF-2029-0087)に基づく減額更正。過納額は「別途還付」とし、R07に接続します。交付日=不服申立期間の起算日。</p>
+    <div class="sheet">
+      <div class="wm"><span>設計イメージ・サンプル</span></div>
+      <p class="docno">機構収第2028-000201号</p>
+      <p class="docdate">2028年11月1日</p>
+      <div class="to">
+        <div class="name">〇〇石油株式会社<br>代表取締役 山田 太郎 殿</div>
+        <div style="font-size:.8rem;color:#555">(事業者番号 F-102394)</div>
+      </div>
+      <div class="from">脱炭素成長型経済構造移行推進機構<br>理事長 ○○ ○○<span class="seal">機構之印</span></div>
+      <p class="title">化石燃料賦課金の賦課金額の更正について(通知)</p>
+      <div class="body">
+        <p>2028年10月15日付けであった賦課金額の更正の請求(受付番号 RF-2029-0087)について審査した結果、更正すべき理由があると認められたので、脱炭素成長型経済構造への円滑な移行の推進に関する法律第○条の規定に基づき、下記のとおり賦課金額を更正したので通知します。</p>
+      </div>
+      <p class="ki">記</p>
+      <table class="kv">
+        <tr><th>対象申告</th><td>LV-2028-000391(2028年度 5月分)</td></tr>
+        <tr><th>更正の理由</th><td>輸入実績データの取り込み誤りにより液化天然ガス 4,834 t が重複計上され、二酸化炭素換算量が過大となっていたため。</td></tr>
+      </table>
+      <table class="dt">
+        <thead><tr><th></th><th>CO₂換算量(t-CO₂)</th><th>賦課金額(円)</th></tr></thead>
+        <tbody>
+          <tr><td>更正前</td><td class="num">85,600.000</td><td class="num">214,000,000</td></tr>
+          <tr><td>更正後</td><td class="num">80,766.000</td><td class="num">201,915,000</td></tr>
+          <tr class="total"><td>差引(過納額)</td><td class="num">▲4,834.000</td><td class="num">▲12,085,000</td></tr>
+        </tbody>
+      </table>
+      <div class="body">
+        <p>上記の過納額については、還付加算金を加算のうえ別途還付します(還付の内容は還付通知書によりお知らせします)。</p>
+      </div>
+      <div class="kyoji">
+        <b>【教示】</b>
+        この処分に不服がある場合は、この通知を受けた日の翌日から起算して3か月以内に、経済産業大臣に対して審査請求をすることができます。(※文言・申立先は仮置き)
+      </div>
+      <p class="note">本通知の真正性は、機構ポータルの文書番号照会で確認できます。</p>
+      <p class="contact">担当: 徴収部 審査課|03-XXXX-XXXX</p>
+    </div>
+    <div class="callouts">
+      <div class="co info"><b>ℹ</b><span>更正前/更正後/差引の3行対比はG-4画面のdiff表示と同一データ。請求どおり認容のため理由は請求内容の追認。一部認容・却下(R06)は別様式。</span></div>
+    </div>
+  </section>
+
+  <!-- ============ R07 ============ -->
+  <section class="doc">
+    <div class="doc-head"><span class="doc-tag">R07</span><h2>還付通知書</h2><span class="biz">出力契機: E-3 還付額確定(支払決定)|G-6</span></div>
+    <p class="doc-note">過納還付の例。加算金の計算根拠を明示し、未納債権への充当欄を常設(本例は充当なし)。振込口座はマスク表示。</p>
+    <div class="sheet">
+      <div class="wm"><span>設計イメージ・サンプル</span></div>
+      <p class="docno">機構還第2028-000088号</p>
+      <p class="docdate">2028年11月20日</p>
+      <div class="to">
+        <div class="name">〇〇石油株式会社<br>代表取締役 山田 太郎 殿</div>
+        <div style="font-size:.8rem;color:#555">(事業者番号 F-102394)</div>
+      </div>
+      <div class="from">脱炭素成長型経済構造移行推進機構<br>理事長 ○○ ○○<span class="seal">機構之印</span></div>
+      <p class="title">化石燃料賦課金の還付について(通知)</p>
+      <div class="body">
+        <p>2028年11月1日付け機構収第2028-000201号(賦課金額の更正通知)に係る過納額について、下記のとおり還付しますので通知します。</p>
+      </div>
+      <p class="ki">記</p>
+      <table class="dt">
+        <thead><tr><th>区分</th><th>金額(円)</th><th>摘要</th></tr></thead>
+        <tbody>
+          <tr><td>過納額</td><td class="num">12,085,000</td><td>減額更正(LV-2028-000391)による</td></tr>
+          <tr><td>還付加算金</td><td class="num">38,738</td><td>年0.9%×130日/365(2028年7月9日〜11月15日)※利率は仮置き</td></tr>
+          <tr><td>未納債権への充当額</td><td class="num">0</td><td>充当対象なし</td></tr>
+          <tr class="total"><td>差引 お支払額</td><td class="num">12,123,738</td><td></td></tr>
+        </tbody>
+      </table>
+      <table class="kv">
+        <tr><th>振込先</th><td>〇〇銀行 本店 普通 ****567(届出口座)</td></tr>
+        <tr><th>支払予定日</th><td>2028年11月25日(月)</td></tr>
+      </table>
+      <div class="body">
+        <p>振込名義は「ダツタンソセイチヨウガタケイザイコウゾウイコウスイシンキコウ」となります。支払予定日を過ぎても入金が確認できない場合は、下記担当までお問い合わせください。</p>
+      </div>
+      <p class="note">本件は請求どおりの認容であるため教示文の記載を省略しています(一部認容・却下の場合は不認容部分について教示文を記載)。</p>
+      <p class="contact">担当: 徴収部 還付課|03-XXXX-XXXX</p>
+    </div>
+    <div class="callouts">
+      <div class="co info"><b>ℹ</b><span>加算金の計算根拠(率・日数・期間)を紙面に明示するのはG-6の計算パネルと同一方針。充当がある場合はこの表に充当先(納付番号・期別)の内訳行が入る。</span></div>
+      <div class="co warn"><b>⚠</b><span>用途還付の還付通知も本様式を共用(過納額→認容額、摘要→用途区分・証明書番号に置換)。一部認容時は不認容理由+教示文が必須。</span></div>
+    </div>
+  </section>
+
+  <div class="foot">化石燃料賦課金 通知書イメージ(帳票定義_通知書.md 対応)|サンプルデータは画面モックと同一シナリオ|様式・条文・利率・教示文は政省令公布前の仮置き。</div>
+</div>
