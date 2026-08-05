@@ -158,9 +158,16 @@
         <div></div>
       </div>
       <div class="row">
-        <div class="box biz"><span class="num">18</span><b>還付金を受領</b><small>届出口座へ入金</small></div>
-        <div class="box kikou"><span class="num">17</span><b>還付支払(G-6)</b><small>全銀振込(IF-5)。<b>ADAMSを経由しない</b>|二重返金防止の責任分界</small></div>
-        <div></div><div></div>
+        <div></div>
+        <div class="box kikou"><span class="num">17</span><b>還付依頼(G-6)</b><small>接受番号・還付額(加算金込)・口座を連携【課題#51: ADAMS経由が有力】</small></div>
+        <div class="box adams"><span class="num">18</span><b>歳入還付(過誤納返還)の実行</b><small>元収納(接受番号)に紐づけ国庫から払戻し</small></div>
+        <div></div>
+      </div>
+      <div class="row">
+        <div class="box biz"><span class="num">20</span><b>還付金を受領</b><small>届出口座へ入金</small></div>
+        <div class="box kikou"><span class="num">19</span><b>還付済情報の取込・消込</b><small>接受番号キーで還付事案を支払済へ(R07交付)</small></div>
+        <div class="arr if l" style="grid-column:2/3;display:none"></div>
+        <div></div>
       </div>
     </div>
     <div class="legend">
@@ -179,7 +186,7 @@
         <tr><td>収納の受入・入金と請求のマッチング</td><td>❌ 不要(名寄せなし)</td><td>⭕ ⑧⑨(消込・第1層)</td></tr>
         <tr><td>債権への充当・状態管理・延滞金・過納検知</td><td>⭕ ⑪(消込・第2層)</td><td>—(機構の債権イベントを知らない)</td></tr>
         <tr><td>取消(過誤納整理)の発生</td><td>受領側 ⑯</td><td>発生側 ⑮</td></tr>
-        <tr><td>還付の支払</td><td>⭕ ⑰ 全銀で直接振込</td><td>❌ 経由しない(返金指示も流さない)</td></tr>
+        <tr><td>還付の支払 <b>【課題#51・関係者情報】</b></td><td>還付額の確定・依頼(⑰)と還付済の消込(⑲)</td><td>⭕ ⑱ 歳入還付として実行(接受番号に紐づけ国庫から払戻し)。従来想定(機構の全銀直接振込)は見直し中</td></tr>
         <tr><td>督促状の発行</td><td>❌ 対象外(滞納の把握・抽出のみ)</td><td>△ 歳入徴収官の督促実務(協議)</td></tr>
         <tr><td>帳簿間の整合</td><td colspan="2">月次残高照合(機構帳簿 ⇄ 国庫収納累計)を双方で実施</td></tr>
       </tbody>
