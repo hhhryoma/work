@@ -1,0 +1,1136 @@
+Attribute VB_Name = "modRedmine"
+Option Explicit
+
+'======================================================================
+'  Redmine チケット自動起票マクロ
+'----------------------------------------------------------------------
+'  確認事項一覧シートの行から Redmine の REST API でチケットを起票し、
+'  発番されたチケット番号・URL・ステータスをシートに書き戻します。
+'
+'  ■ 準備（初回のみ）
+'    1) Redmine 側で REST API を有効化
+'         管理 → 設定 → API → 「RESTによるWebサービスを有効にする」にチェック
+'    2) 自分の APIアクセスキーを控える
+'         個人設定 → 画面右の「APIアクセスキー」→ 表示
+'    3) Redmine_設定シートを作成  を実行し、「Redmine設定」シートへ
+'       URL・APIキー・プロジェクト識別子を記入
+'    4) Redmine_接続テスト  で疎通確認
+'    5) トラッカーID等が不明なら Redmine_マスタ一覧を取得 でID一覧を出力
+'
+'  ■ 公開マクロ（Alt+F8 / ボタン割当）
+'    ・Redmine_選択行を起票          … 一覧シートで選択した行を起票
+'    ・Redmine_対象行を一括起票      … 「起票」列に ○ が付いた行をまとめて起票
+'    ・Redmine_起票済みの状態を更新  … 起票済み行のステータス/担当者を取得して反映
+'    ・Redmine_接続テスト
+'    ・Redmine_マスタ一覧を取得
+'    ・Redmine_設定シートを作成
+'
+'  ■ 書き戻す列（1行目のヘッダー名で探し、無ければ右端に自動追加）
+'      起票 / Redmineチケット / Redmineステータス / Redmine担当者 / 起票日時 / 起票結果
+'    ヘッダー名で引き当てるので、列は好きな位置へ移動して構いません。
+'    行ごとに値を変えたい項目（トラッカーID・優先度ID・担当者ID・期日）は、
+'    同名のヘッダー列を自分で作っておくとその行だけ設定より優先されます。
+'
+'  ■ 二重起票について
+'    「Redmineチケット」列に番号が入っている行は常にスキップします。
+'    作り直したい場合はその行のチケット番号を消してから実行してください。
+'
+'  ■ 注意
+'    APIキーはブック内（Redmine設定シート）に保存されます。キーはパスワードと
+'    同等の情報です。ブックを共有・配布するときは必ずキーを消してください。
+'======================================================================
+
+'==== シート名・列（実ファイルに合わせて変更可） ====
+Private Const CFG_SHEET As String = "Redmine設定"
+Private Const MASTER_SHEET As String = "Redmineマスタ"
+Private Const LIST_PREFIX As String = "確認事項一覧"   ' 一覧シート名の接頭辞
+Private Const HDR_ROW As Long = 1
+Private Const FIRST_DATA_ROW As Long = 2
+
+Private Const COL_NO As Long = 1       ' A: #（通番）
+Private Const COL_PAGE As Long = 2     ' B: 頁
+Private Const COL_ITEM As Long = 7     ' G: 確認事項（件名・本文の元ネタ）
+
+'==== 書き戻し列のヘッダー名 ====
+Private Const HDR_FLAG As String = "起票"
+Private Const HDR_TICKET As String = "Redmineチケット"
+Private Const HDR_STATUS As String = "Redmineステータス"
+Private Const HDR_ASSIGNEE As String = "Redmine担当者"
+Private Const HDR_DATE As String = "起票日時"
+Private Const HDR_RESULT As String = "起票結果"
+
+'==== 行ごとの上書き用（任意。列が無ければ設定シートの値を使う） ====
+Private Const HDR_TRACKER As String = "トラッカーID"
+Private Const HDR_PRIORITY As String = "優先度ID"
+Private Const HDR_ASSIGNEE_ID As String = "担当者ID"
+Private Const HDR_DUE As String = "期日"
+
+Private Const MAX_SUBJECT As Long = 255     ' Redmineの件名上限
+Private Const MAX_SCAN_COL As Long = 300    ' ヘッダー検索の走査範囲
+
+
+'======================================================================
+'  公開エントリ
+'======================================================================
+Public Sub Redmine_選択行を起票()
+    IssueRows "SELECTION"
+End Sub
+
+Public Sub Redmine_対象行を一括起票()
+    IssueRows "FLAG"
+End Sub
+
+
+'======================================================================
+'  起票本体
+'======================================================================
+Private Sub IssueRows(ByVal mode As String)
+    Dim ws As Worksheet
+    Set ws = ResolveListSheet()
+    If ws Is Nothing Then
+        MsgBox "確認事項一覧シートが見つかりません。" & vbCrLf & _
+               "一覧シート（" & LIST_PREFIX & "…）を開いた状態で実行してください。", vbExclamation
+        Exit Sub
+    End If
+
+    ' 選択行モードは、選択と一覧シートがずれていると別行を起票してしまう
+    If mode = "SELECTION" Then
+        If Not (ActiveSheet Is ws) Then
+            MsgBox "一覧シート「" & ws.Name & "」を開いて、起票したい行を選択してから実行してください。", vbExclamation
+            Exit Sub
+        End If
+    End If
+
+    Dim cfg As Object
+    Set cfg = LoadConfig(ws.Parent)
+    If cfg Is Nothing Then Exit Sub
+    If Not ValidateConfig(cfg) Then Exit Sub
+
+    ' 書き戻し列を用意（無ければ右端に追加）
+    Dim cTicket As Long, cStatus As Long, cAssignee As Long, cDate As Long, cResult As Long, cFlag As Long
+    cFlag = EnsureColumn(ws, HDR_FLAG)
+    cTicket = EnsureColumn(ws, HDR_TICKET)
+    cStatus = EnsureColumn(ws, HDR_STATUS)
+    cAssignee = EnsureColumn(ws, HDR_ASSIGNEE)
+    cDate = EnsureColumn(ws, HDR_DATE)
+    cResult = EnsureColumn(ws, HDR_RESULT)
+
+    ' 対象行の収集
+    Dim targets As Collection, skipDone As Long, skipEmpty As Long
+    Set targets = CollectTargetRows(ws, mode, cFlag, cTicket, skipDone, skipEmpty)
+
+    If targets.Count = 0 Then
+        MsgBox "起票対象の行がありません。" & vbCrLf & vbCrLf & _
+               ModeHint(mode) & vbCrLf & _
+               "起票済みでスキップ：" & skipDone & " 行" & vbCrLf & _
+               "確認事項が空でスキップ：" & skipEmpty & " 行", vbInformation
+        Exit Sub
+    End If
+
+    Dim dryRun As Boolean: dryRun = CfgB(cfg, "試行のみ（起票しない）", False)
+    If CfgB(cfg, "実行前に確認する", True) Then
+        Dim msg As String
+        msg = targets.Count & " 件を Redmine に起票します。" & vbCrLf & vbCrLf & _
+              "接続先：" & BaseUrl(cfg) & vbCrLf & _
+              "プロジェクト：" & CfgS(cfg, "プロジェクト識別子") & vbCrLf & _
+              "起票済みでスキップ：" & skipDone & " 行" & vbCrLf & _
+              IIf(dryRun, vbCrLf & "※ 試行のみモードです。実際には起票しません。", "")
+        If MsgBox(msg, vbOKCancel + vbQuestion, "Redmine起票") <> vbOK Then Exit Sub
+    End If
+
+    Dim su As Boolean, asec As Long
+    su = Application.ScreenUpdating
+    asec = Application.Calculation
+    Application.ScreenUpdating = False
+    On Error Resume Next
+    Application.Calculation = xlCalculationManual
+    On Error GoTo 0
+
+    Dim okCnt As Long, ngCnt As Long, abortMsg As String
+    Dim idx As Long, r As Long
+    Dim subject As String, descr As String, ov As Object
+    Dim newId As Long, errText As String, httpStatus As Long
+
+    For idx = 1 To targets.Count
+        r = targets(idx)
+        Application.StatusBar = "Redmine起票中 " & idx & " / " & targets.Count & " （行 " & r & "）"
+
+        subject = BuildSubject(ws, r, cfg)
+        descr = BuildDescription(ws, r, cfg)
+        Set ov = RowOverrides(ws, r)
+
+        If Len(subject) = 0 Then
+            ws.Cells(r, cResult).Value = "NG: 件名が空です"
+            ngCnt = ngCnt + 1
+        ElseIf dryRun Then
+            ws.Cells(r, cResult).Value = "試行のみ: " & Left$(subject, 80)
+            okCnt = okCnt + 1
+        ElseIf CreateIssue(cfg, subject, descr, ov, newId, errText, httpStatus) Then
+            WriteTicketCell ws, r, cTicket, cfg, newId
+            ws.Cells(r, cDate).Value = Format$(Now, "yyyy/mm/dd hh:nn")
+            ws.Cells(r, cResult).Value = "OK"
+            ws.Cells(r, cStatus).Value = ""
+            okCnt = okCnt + 1
+            PauseMs CfgL(cfg, "送信間隔ミリ秒", 300)
+        Else
+            ws.Cells(r, cResult).Value = "NG: " & errText
+            ngCnt = ngCnt + 1
+            ' 認証・宛先の誤りは全行で同じ結果になるため、その場で中断する
+            If httpStatus = 401 Or httpStatus = 403 Or httpStatus = 404 Then
+                abortMsg = "HTTP " & httpStatus & "：" & errText & vbCrLf & _
+                           "設定（URL／APIキー／プロジェクト識別子／権限）を確認してください。"
+                Exit For
+            End If
+        End If
+    Next idx
+
+    Application.StatusBar = False
+    On Error Resume Next
+    Application.Calculation = asec
+    On Error GoTo 0
+    Application.ScreenUpdating = su
+
+    Dim rep As String
+    rep = "起票成功：" & okCnt & " 件" & vbCrLf & _
+          "失敗：" & ngCnt & " 件" & vbCrLf & _
+          "起票済みでスキップ：" & skipDone & " 行" & vbCrLf & _
+          "確認事項が空でスキップ：" & skipEmpty & " 行"
+    If Len(abortMsg) > 0 Then rep = rep & vbCrLf & vbCrLf & "【中断】" & vbCrLf & abortMsg
+    If ngCnt > 0 Then rep = rep & vbCrLf & vbCrLf & "失敗の理由は「" & HDR_RESULT & "」列を確認してください。"
+    MsgBox rep, IIf(ngCnt > 0, vbExclamation, vbInformation), "Redmine起票"
+End Sub
+
+Private Function ModeHint(ByVal mode As String) As String
+    If mode = "SELECTION" Then
+        ModeHint = "一覧シートで起票したい行を選択してから実行してください。"
+    Else
+        ModeHint = "「" & HDR_FLAG & "」列に ○ を入れた行が対象です。"
+    End If
+End Function
+
+' 対象行を集める。起票済み（チケット番号あり）と確認事項が空の行は除外。
+Private Function CollectTargetRows(ws As Worksheet, ByVal mode As String, _
+                                   ByVal cFlag As Long, ByVal cTicket As Long, _
+                                   ByRef skipDone As Long, ByRef skipEmpty As Long) As Collection
+    Dim res As New Collection
+    Dim seen As Object: Set seen = CreateObject("Scripting.Dictionary")
+    Dim lastRow As Long: lastRow = LastDataRow(ws)
+
+    Dim r As Long
+    If mode = "SELECTION" Then
+        Dim area As Range
+        If TypeName(Selection) <> "Range" Then Set CollectTargetRows = res: Exit Function
+        For Each area In Selection.Areas
+            For r = area.Row To area.Row + area.Rows.Count - 1
+                If r >= FIRST_DATA_ROW And r <= lastRow Then
+                    If Not seen.Exists(r) Then
+                        seen.Add r, True
+                        AddIfIssuable ws, r, cTicket, res, skipDone, skipEmpty
+                    End If
+                End If
+            Next r
+        Next area
+    Else
+        For r = FIRST_DATA_ROW To lastRow
+            If IsFlagOn(ws.Cells(r, cFlag).Value) Then
+                AddIfIssuable ws, r, cTicket, res, skipDone, skipEmpty
+            End If
+        Next r
+    End If
+    Set CollectTargetRows = res
+End Function
+
+Private Sub AddIfIssuable(ws As Worksheet, ByVal r As Long, ByVal cTicket As Long, _
+                          res As Collection, ByRef skipDone As Long, ByRef skipEmpty As Long)
+    If Len(TrimSpaces(CStr(ws.Cells(r, cTicket).Value))) > 0 Then
+        skipDone = skipDone + 1
+    ElseIf Len(TrimSpaces(CStr(ws.Cells(r, COL_ITEM).Value))) = 0 Then
+        skipEmpty = skipEmpty + 1
+    Else
+        res.Add r
+    End If
+End Sub
+
+' ○ 系の記号・1・TRUE などを「対象」とみなす
+Private Function IsFlagOn(ByVal v As Variant) As Boolean
+    Dim s As String
+    s = LCase$(TrimSpaces(CStr(v)))
+    If Len(s) = 0 Then Exit Function
+    Select Case s
+        Case "○", "◯", "〇", "●", "◎", "o", "1", "-1", "true", "yes", "y", "レ", "✓", "☑", "対象", "起票"
+            IsFlagOn = True
+    End Select
+End Function
+
+Private Sub WriteTicketCell(ws As Worksheet, ByVal r As Long, ByVal cTicket As Long, _
+                            cfg As Object, ByVal issueId As Long)
+    Dim url As String
+    url = BaseUrl(cfg) & "/issues/" & issueId
+    On Error Resume Next
+    ws.Cells(r, cTicket).Hyperlinks.Delete
+    On Error GoTo 0
+    ws.Cells(r, cTicket).Value = "#" & issueId
+    On Error Resume Next
+    ws.Hyperlinks.Add Anchor:=ws.Cells(r, cTicket), Address:=url, TextToDisplay:="#" & issueId
+    On Error GoTo 0
+End Sub
+
+
+'======================================================================
+'  件名・本文の組み立て
+'======================================================================
+Private Function BuildSubject(ws As Worksheet, ByVal r As Long, cfg As Object) As String
+    Dim tpl As String
+    tpl = CfgS(cfg, "件名テンプレート")
+    If Len(tpl) = 0 Then tpl = "{確認事項}"
+    Dim s As String
+    s = ApplyTemplate(tpl, ws, r)
+    s = Replace$(s, vbCrLf, " ")
+    s = Replace$(s, vbCr, " ")
+    s = Replace$(s, vbLf, " ")
+    s = Replace$(s, Chr$(11), " ")       ' 図形由来の手動改行
+    s = TrimSpaces(s)
+    If Len(s) > MAX_SUBJECT Then s = Left$(s, MAX_SUBJECT - 1) & "…"
+    BuildSubject = s
+End Function
+
+Private Function BuildDescription(ws As Worksheet, ByVal r As Long, cfg As Object) As String
+    Dim tpl As String
+    tpl = CfgS(cfg, "本文テンプレート")
+    If Len(tpl) = 0 Then tpl = "{確認事項}"
+    BuildDescription = ApplyTemplate(tpl, ws, r)
+End Function
+
+' テンプレートのプレースホルダを行の値で置換
+'   {No} {頁} {確認事項} {ファイル名} {シート名} {行}
+Private Function ApplyTemplate(ByVal tpl As String, ws As Worksheet, ByVal r As Long) As String
+    Dim s As String
+    s = tpl
+    s = Replace$(s, "\n", vbLf)                       ' セルに1行で書きたい場合の改行指定
+    s = Replace$(s, "{No}", CStr(ws.Cells(r, COL_NO).Value))
+    s = Replace$(s, "{頁}", CStr(ws.Cells(r, COL_PAGE).Value))
+    s = Replace$(s, "{確認事項}", NormalizeBreaks(CStr(ws.Cells(r, COL_ITEM).Value)))
+    s = Replace$(s, "{ファイル名}", ws.Parent.Name)
+    s = Replace$(s, "{シート名}", ws.Name)
+    s = Replace$(s, "{行}", CStr(r))
+    ApplyTemplate = s
+End Function
+
+' 行ごとの上書き値（該当列が無ければ空の辞書）
+Private Function RowOverrides(ws As Worksheet, ByVal r As Long) As Object
+    Dim d As Object: Set d = CreateObject("Scripting.Dictionary")
+    AddOverride d, ws, r, HDR_TRACKER
+    AddOverride d, ws, r, HDR_PRIORITY
+    AddOverride d, ws, r, HDR_ASSIGNEE_ID
+    AddOverride d, ws, r, HDR_DUE
+    Set RowOverrides = d
+End Function
+
+Private Sub AddOverride(d As Object, ws As Worksheet, ByVal r As Long, ByVal header As String)
+    Dim c As Long
+    c = FindColumn(ws, header)
+    If c = 0 Then Exit Sub
+    Dim v As String
+    v = TrimSpaces(CStr(ws.Cells(r, c).Value))
+    If Len(v) > 0 Then d(header) = v
+End Sub
+
+
+'======================================================================
+'  Redmine API 呼び出し
+'======================================================================
+' チケット作成。成功なら outId に新しいチケット番号が入る。
+Private Function CreateIssue(cfg As Object, ByVal subject As String, ByVal descr As String, _
+                             ov As Object, ByRef outId As Long, ByRef outErr As String, _
+                             ByRef outStatus As Long) As Boolean
+    Dim json As String
+    json = "{""issue"":{"
+    json = json & """project_id"":""" & JsonEsc(CfgS(cfg, "プロジェクト識別子")) & """"
+    json = json & ",""subject"":""" & JsonEsc(subject) & """"
+    json = json & ",""description"":""" & JsonEsc(descr) & """"
+    json = json & NumField("tracker_id", PickVal(ov, HDR_TRACKER, cfg, "トラッカーID"))
+    json = json & NumField("priority_id", PickVal(ov, HDR_PRIORITY, cfg, "優先度ID"))
+    json = json & NumField("assigned_to_id", PickVal(ov, HDR_ASSIGNEE_ID, cfg, "担当者ID"))
+    json = json & NumField("fixed_version_id", CfgS(cfg, "対象バージョンID"))
+    json = json & NumField("category_id", CfgS(cfg, "カテゴリID"))
+    json = json & StrField("due_date", DateFieldValue(PickVal(ov, HDR_DUE, cfg, "期日")))
+    json = json & "}}"
+
+    Dim body As String
+    outId = 0: outErr = "": outStatus = 0
+    If Not ApiCall(cfg, "POST", "/issues.json", json, outStatus, body, outErr) Then
+        CreateIssue = False
+        Exit Function
+    End If
+
+    outId = JsonNumber(body, "id")
+    If outId <= 0 Then
+        outErr = "レスポンスからチケット番号を取得できません: " & Left$(body, 200)
+        CreateIssue = False
+        Exit Function
+    End If
+    CreateIssue = True
+End Function
+
+' HTTP要求。2xx以外・通信失敗は False（outErr にRedmineのエラーメッセージ）。
+Private Function ApiCall(cfg As Object, ByVal method As String, ByVal path As String, _
+                         ByVal body As String, ByRef outStatus As Long, _
+                         ByRef outText As String, ByRef outErr As String) As Boolean
+    Dim url As String
+    url = BaseUrl(cfg) & path
+
+    Dim retries As Long, attempt As Long
+    retries = CfgL(cfg, "リトライ回数", 2)
+    If retries < 0 Then retries = 0
+
+    For attempt = 0 To retries
+        outStatus = 0: outText = "": outErr = ""
+        If HttpSend(cfg, method, url, body, outStatus, outText, outErr) Then
+            If outStatus >= 200 And outStatus < 300 Then
+                ApiCall = True
+                Exit Function
+            End If
+            outErr = HttpErrorText(outStatus, outText)
+            ' 4xx はリトライしても同じ結果になるため即終了（429=流量制限のみ待って再試行）
+            If outStatus < 500 And outStatus <> 429 Then Exit Function
+        End If
+        If attempt < retries Then PauseMs 1000 * (attempt + 1)
+    Next attempt
+    ApiCall = False
+End Function
+
+' 実送信。WinHttp を優先し、使えない環境では MSXML(ServerXMLHTTP) にフォールバック。
+Private Function HttpSend(cfg As Object, ByVal method As String, ByVal url As String, _
+                          ByVal body As String, ByRef outStatus As Long, _
+                          ByRef outText As String, ByRef outErr As String) As Boolean
+    Dim http As Object, isWinHttp As Boolean
+    On Error Resume Next
+    Set http = CreateObject("WinHttp.WinHttpRequest.5.1")
+    isWinHttp = Not (http Is Nothing)
+    If http Is Nothing Then Set http = CreateObject("MSXML2.ServerXMLHTTP.6.0")
+    If http Is Nothing Then Set http = CreateObject("MSXML2.XMLHTTP")
+    On Error GoTo 0
+    If http Is Nothing Then
+        outErr = "HTTPコンポーネントを生成できません（WinHttp / MSXML が見つかりません）"
+        Exit Function
+    End If
+
+    Dim toSec As Long: toSec = CfgL(cfg, "タイムアウト秒", 30)
+    If toSec <= 0 Then toSec = 30
+    Dim proxy As String: proxy = CfgS(cfg, "プロキシ")
+    Dim ignoreCert As Boolean: ignoreCert = CfgB(cfg, "証明書エラーを無視", False)
+
+    On Error GoTo SendErr
+    If isWinHttp Then
+        http.SetTimeouts toSec * 1000, toSec * 1000, toSec * 1000, toSec * 1000
+        If Len(proxy) > 0 Then http.SetProxy 2, proxy      ' 2 = HTTPREQUEST_PROXYSETTING_PROXY
+    End If
+    http.Open method, url, False
+    If isWinHttp Then
+        If ignoreCert Then http.Option(4) = 13056          ' 社内の自己署名証明書向け。既定はOFF
+    Else
+        On Error Resume Next
+        http.setTimeouts toSec * 1000, toSec * 1000, toSec * 1000, toSec * 1000
+        If ignoreCert Then http.setOption 2, 13056
+        On Error GoTo SendErr
+    End If
+    http.setRequestHeader "X-Redmine-API-Key", CfgS(cfg, "APIキー")
+    http.setRequestHeader "Content-Type", "application/json; charset=utf-8"
+    http.setRequestHeader "Accept", "application/json"
+
+    If Len(body) > 0 Then
+        http.send Utf8Bytes(body)
+    Else
+        http.send
+    End If
+
+    outStatus = CLng(http.Status)
+    outText = Utf8Text(http.responseBody)
+    HttpSend = True
+    Exit Function
+
+SendErr:
+    outErr = "通信エラー: " & Err.Description & " (" & url & ")"
+    HttpSend = False
+End Function
+
+Private Function HttpErrorText(ByVal status As Long, ByVal body As String) As String
+    Dim detail As String
+    detail = JsonErrors(body)
+    Select Case status
+        Case 401: HttpErrorText = "HTTP 401 認証エラー（APIキーを確認してください）"
+        Case 403: HttpErrorText = "HTTP 403 権限エラー（そのプロジェクトへの起票権限がありません／REST APIが無効の可能性）"
+        Case 404: HttpErrorText = "HTTP 404 見つかりません（URL・プロジェクト識別子を確認してください）"
+        Case 422: HttpErrorText = "HTTP 422 入力エラー"
+        Case 429: HttpErrorText = "HTTP 429 リクエスト過多"
+        Case Else: HttpErrorText = "HTTP " & status
+    End Select
+    If Len(detail) > 0 Then HttpErrorText = HttpErrorText & " - " & detail
+End Function
+
+
+'======================================================================
+'  起票済み行の状態更新
+'======================================================================
+Public Sub Redmine_起票済みの状態を更新()
+    Dim ws As Worksheet
+    Set ws = ResolveListSheet()
+    If ws Is Nothing Then
+        MsgBox "確認事項一覧シートが見つかりません。", vbExclamation
+        Exit Sub
+    End If
+
+    Dim cfg As Object
+    Set cfg = LoadConfig(ws.Parent)
+    If cfg Is Nothing Then Exit Sub
+    If Not ValidateConfig(cfg) Then Exit Sub
+
+    Dim cTicket As Long, cStatus As Long, cAssignee As Long
+    cTicket = EnsureColumn(ws, HDR_TICKET)
+    cStatus = EnsureColumn(ws, HDR_STATUS)
+    cAssignee = EnsureColumn(ws, HDR_ASSIGNEE)
+
+    Dim lastRow As Long: lastRow = LastDataRow(ws)
+    Dim r As Long, id As Long, okCnt As Long, ngCnt As Long
+    Dim st As Long, body As String, errText As String
+
+    Application.ScreenUpdating = False
+    For r = FIRST_DATA_ROW To lastRow
+        id = TicketId(ws.Cells(r, cTicket).Value)
+        If id > 0 Then
+            Application.StatusBar = "Redmine状態取得中 #" & id & " （行 " & r & "）"
+            If ApiCall(cfg, "GET", "/issues/" & id & ".json", "", st, body, errText) Then
+                ws.Cells(r, cStatus).Value = JsonSubName(body, "status")
+                ws.Cells(r, cAssignee).Value = JsonSubName(body, "assigned_to")
+                okCnt = okCnt + 1
+            Else
+                ws.Cells(r, cStatus).Value = "取得失敗: " & errText
+                ngCnt = ngCnt + 1
+                If st = 401 Or st = 403 Then Exit For
+            End If
+            PauseMs CfgL(cfg, "送信間隔ミリ秒", 300)
+        End If
+    Next r
+    Application.StatusBar = False
+    Application.ScreenUpdating = True
+
+    MsgBox "更新：" & okCnt & " 件" & vbCrLf & "失敗：" & ngCnt & " 件", _
+           IIf(ngCnt > 0, vbExclamation, vbInformation), "Redmine状態更新"
+End Sub
+
+' "#123" / "123" / URL からチケット番号を取り出す
+Private Function TicketId(ByVal v As Variant) As Long
+    Dim s As String, i As Long, ch As String, num As String
+    s = TrimSpaces(CStr(v))
+    If Len(s) = 0 Then Exit Function
+    ' URL 形式なら最後の /issues/123 を拾う
+    i = InStrRev(s, "/issues/")
+    If i > 0 Then s = Mid$(s, i + 8)
+    For i = 1 To Len(s)
+        ch = Mid$(s, i, 1)
+        If ch >= "0" And ch <= "9" Then
+            num = num & ch
+        ElseIf Len(num) > 0 Then
+            Exit For
+        End If
+    Next i
+    If Len(num) > 0 And Len(num) <= 9 Then TicketId = CLng(num)
+End Function
+
+
+'======================================================================
+'  接続テスト・マスタ取得
+'======================================================================
+Public Sub Redmine_接続テスト()
+    Dim cfg As Object
+    Set cfg = LoadConfig(ActiveWorkbook)
+    If cfg Is Nothing Then Exit Sub
+    If Not ValidateConfig(cfg, True) Then Exit Sub
+
+    Dim st As Long, body As String, errText As String
+    If Not ApiCall(cfg, "GET", "/users/current.json", "", st, body, errText) Then
+        MsgBox "接続できませんでした。" & vbCrLf & vbCrLf & errText & vbCrLf & vbCrLf & _
+               "接続先：" & BaseUrl(cfg), vbExclamation, "Redmine接続テスト"
+        Exit Sub
+    End If
+
+    Dim who As String
+    who = JsonString(body, "login")
+    If Len(who) = 0 Then who = JsonString(body, "firstname") & " " & JsonString(body, "lastname")
+
+    Dim projMsg As String
+    If Len(CfgS(cfg, "プロジェクト識別子")) > 0 Then
+        If ApiCall(cfg, "GET", "/projects/" & CfgS(cfg, "プロジェクト識別子") & ".json", "", st, body, errText) Then
+            projMsg = vbCrLf & "プロジェクト：" & JsonString(body, "name") & "（OK）"
+        Else
+            projMsg = vbCrLf & "プロジェクト：" & errText
+        End If
+    End If
+
+    MsgBox "接続OK" & vbCrLf & vbCrLf & _
+           "接続先：" & BaseUrl(cfg) & vbCrLf & _
+           "ログインユーザー：" & TrimSpaces(who) & projMsg, vbInformation, "Redmine接続テスト"
+End Sub
+
+' トラッカー・優先度・ステータス・メンバーのIDを一覧化する（設定値を調べる用）
+Public Sub Redmine_マスタ一覧を取得()
+    Dim wb As Workbook: Set wb = ActiveWorkbook
+    Dim cfg As Object
+    Set cfg = LoadConfig(wb)
+    If cfg Is Nothing Then Exit Sub
+    If Not ValidateConfig(cfg, True) Then Exit Sub
+
+    Dim ws As Worksheet
+    Set ws = GetOrAddSheet(wb, MASTER_SHEET)
+    ws.Cells.Clear
+    ws.Range("A1:C1").Value = Array("区分", "ID", "名称")
+
+    Dim row As Long: row = 2
+    DumpMaster cfg, ws, row, "トラッカー", "/trackers.json", "tracker"
+    DumpMaster cfg, ws, row, "優先度", "/enumerations/issue_priorities.json", "priority"
+    DumpMaster cfg, ws, row, "ステータス", "/issue_statuses.json", "status"
+
+    Dim ident As String: ident = CfgS(cfg, "プロジェクト識別子")
+    If Len(ident) > 0 Then
+        DumpMaster cfg, ws, row, "メンバー", "/projects/" & ident & "/memberships.json?limit=100", "member"
+    End If
+
+    ws.Columns("A:C").AutoFit
+    ws.Activate
+    MsgBox "マスタ一覧を「" & MASTER_SHEET & "」シートに出力しました。" & vbCrLf & _
+           "ここで調べたIDを「" & CFG_SHEET & "」シートに設定してください。", vbInformation
+End Sub
+
+Private Sub DumpMaster(cfg As Object, ws As Worksheet, ByRef outRow As Long, _
+                       ByVal caption As String, ByVal path As String, ByVal kind As String)
+    Dim st As Long, body As String, errText As String
+    If Not ApiCall(cfg, "GET", path, "", st, body, errText) Then
+        ws.Cells(outRow, 1).Value = caption
+        ws.Cells(outRow, 3).Value = "取得失敗: " & errText
+        outRow = outRow + 1
+        Exit Sub
+    End If
+
+    Dim re As Object: Set re = CreateObject("VBScript.RegExp")
+    re.Global = True
+    re.IgnoreCase = False
+    If kind = "member" Then
+        re.Pattern = """user"":\s*\{\s*""id"":\s*(\d+)\s*,\s*""name"":\s*""((?:[^""\\]|\\.)*)"""
+    Else
+        ' トラッカーの default_status など、入れ子の id/name を拾わないよう先に潰す
+        body = StripNestedObjects(body)
+        re.Pattern = """id"":\s*(\d+)\s*,\s*""name"":\s*""((?:[^""\\]|\\.)*)"""
+    End If
+
+    Dim mc As Object, m As Object, n As Long
+    Set mc = re.Execute(body)
+    For Each m In mc
+        ws.Cells(outRow, 1).Value = caption
+        ws.Cells(outRow, 2).Value = CLng(m.SubMatches(0))
+        ws.Cells(outRow, 3).Value = JsonUnesc(m.SubMatches(1))
+        outRow = outRow + 1
+        n = n + 1
+    Next m
+    If n = 0 Then
+        ws.Cells(outRow, 1).Value = caption
+        ws.Cells(outRow, 3).Value = "（該当なし）"
+        outRow = outRow + 1
+    End If
+    outRow = outRow + 1   ' 区分の区切りに1行空ける
+End Sub
+
+' "key":{ … } の入れ子オブジェクトを取り除く（最下層から1段ずつ）
+Private Function StripNestedObjects(ByVal json As String) As String
+    Dim re As Object: Set re = CreateObject("VBScript.RegExp")
+    re.Global = True
+    re.Pattern = """[A-Za-z_][A-Za-z0-9_]*""\s*:\s*\{[^{}]*\}"
+    Dim s As String, prev As String, i As Long
+    s = json
+    For i = 1 To 5
+        prev = s
+        s = re.Replace(s, """_stripped"":null")
+        If s = prev Then Exit For
+    Next i
+    StripNestedObjects = s
+End Function
+
+
+'======================================================================
+'  設定シート
+'======================================================================
+Public Sub Redmine_設定シートを作成()
+    Dim wb As Workbook: Set wb = ActiveWorkbook
+    Dim ws As Worksheet
+    Set ws = SheetOrNothing(wb, CFG_SHEET)
+    If Not ws Is Nothing Then
+        If MsgBox("「" & CFG_SHEET & "」シートは既にあります。" & vbCrLf & _
+                  "未記入の項目だけ追加します（記入済みの値は残ります）。続けますか？", _
+                  vbOKCancel + vbQuestion) <> vbOK Then Exit Sub
+    Else
+        Set ws = GetOrAddSheet(wb, CFG_SHEET)
+        ws.Range("A1:B1").Value = Array("項目", "値")
+    End If
+
+    AddSetting ws, "RedmineのURL", "https://redmine.example.co.jp", "末尾の / は不要。例）https://redmine.example.co.jp"
+    AddSetting ws, "APIキー", "", "個人設定 → APIアクセスキー。※パスワード同等。共有時は必ず削除"
+    AddSetting ws, "プロジェクト識別子", "", "プロジェクトURLの末尾の文字列（例：sample-project）"
+    AddSetting ws, "トラッカーID", "", "空欄なら既定。IDは Redmine_マスタ一覧を取得 で確認"
+    AddSetting ws, "優先度ID", "", "空欄なら既定（通常）"
+    AddSetting ws, "担当者ID", "", "空欄なら未割当"
+    AddSetting ws, "カテゴリID", "", "任意"
+    AddSetting ws, "対象バージョンID", "", "任意"
+    AddSetting ws, "期日", "", "yyyy/mm/dd 形式。任意"
+    AddSetting ws, "件名テンプレート", "[確認事項] P{頁} {確認事項}", _
+                  "使える置換：{No} {頁} {確認事項} {ファイル名} {シート名} {行}"
+    AddSetting ws, "本文テンプレート", _
+                  "{確認事項}" & vbLf & vbLf & "----" & vbLf & _
+                  "出典：{ファイル名} / {シート名} 行{行}" & vbLf & "確認事項No：{No}（{頁}頁）", _
+                  "セル内改行（Alt+Enter）可。\n と書いても改行になります"
+    AddSetting ws, "タイムアウト秒", 30, ""
+    AddSetting ws, "リトライ回数", 2, "通信失敗・サーバエラー時の再試行回数"
+    AddSetting ws, "送信間隔ミリ秒", 300, "サーバ負荷を抑えるための1件ごとの待ち時間"
+    AddSetting ws, "プロキシ", "", "必要な場合のみ  例）proxy.example.co.jp:8080"
+    AddSetting ws, "証明書エラーを無視", "FALSE", "社内の自己署名証明書でエラーになる場合のみ TRUE"
+    AddSetting ws, "実行前に確認する", "TRUE", "起票前に件数の確認ダイアログを出す"
+    AddSetting ws, "試行のみ（起票しない）", "FALSE", "TRUE にすると通信せず対象行だけ確認できる"
+
+    ws.Range("C1").Value = "説明"
+    ws.Columns("A").ColumnWidth = 24
+    ws.Columns("B").ColumnWidth = 46
+    ws.Columns("C").ColumnWidth = 60
+    ws.Range("A1:C1").Font.Bold = True
+    ws.Activate
+    ws.Range("B2").Select
+
+    MsgBox "「" & CFG_SHEET & "」シートを用意しました。" & vbCrLf & vbCrLf & _
+           "URL・APIキー・プロジェクト識別子を記入したあと、" & vbCrLf & _
+           "Redmine_接続テスト を実行して疎通を確認してください。", vbInformation
+End Sub
+
+' 未登録の項目だけ追記する（記入済みの値は触らない）
+Private Sub AddSetting(ws As Worksheet, ByVal key As String, ByVal defVal As Variant, ByVal note As String)
+    Dim r As Long
+    r = FindSettingRow(ws, key)
+    If r > 0 Then
+        If Len(TrimSpaces(CStr(ws.Cells(r, 3).Value))) = 0 Then ws.Cells(r, 3).Value = note
+        Exit Sub
+    End If
+    r = ws.Cells(ws.Rows.Count, 1).End(xlUp).Row + 1
+    If r < 2 Then r = 2
+    ws.Cells(r, 1).Value = key
+    ws.Cells(r, 2).Value = defVal
+    ws.Cells(r, 3).Value = note
+    ws.Cells(r, 2).WrapText = True
+    ws.Cells(r, 2).HorizontalAlignment = xlLeft
+End Sub
+
+Private Function FindSettingRow(ws As Worksheet, ByVal key As String) As Long
+    Dim lastRow As Long, r As Long
+    lastRow = ws.Cells(ws.Rows.Count, 1).End(xlUp).Row
+    For r = 2 To lastRow
+        If NormalizeKey(CStr(ws.Cells(r, 1).Value)) = NormalizeKey(key) Then
+            FindSettingRow = r
+            Exit Function
+        End If
+    Next r
+End Function
+
+' 設定シートを辞書に読み込む。無ければ作成を案内して Nothing を返す。
+Private Function LoadConfig(wb As Workbook) As Object
+    Dim ws As Worksheet
+    Set ws = SheetOrNothing(wb, CFG_SHEET)
+    If ws Is Nothing Then
+        If MsgBox("「" & CFG_SHEET & "」シートがありません。" & vbCrLf & _
+                  "今すぐ作成しますか？", vbOKCancel + vbQuestion) = vbOK Then
+            Redmine_設定シートを作成
+        End If
+        Exit Function
+    End If
+
+    Dim d As Object: Set d = CreateObject("Scripting.Dictionary")
+    Dim lastRow As Long, r As Long, k As String
+    lastRow = ws.Cells(ws.Rows.Count, 1).End(xlUp).Row
+    For r = 2 To lastRow
+        k = NormalizeKey(CStr(ws.Cells(r, 1).Value))
+        If Len(k) > 0 Then d(k) = ws.Cells(r, 2).Value
+    Next r
+    Set LoadConfig = d
+End Function
+
+Private Function ValidateConfig(cfg As Object, Optional ByVal skipProject As Boolean = False) As Boolean
+    Dim miss As String
+    If Len(CfgS(cfg, "RedmineのURL")) = 0 Then miss = miss & vbCrLf & "・RedmineのURL"
+    If Len(CfgS(cfg, "APIキー")) = 0 Then miss = miss & vbCrLf & "・APIキー"
+    If Not skipProject Then
+        If Len(CfgS(cfg, "プロジェクト識別子")) = 0 Then miss = miss & vbCrLf & "・プロジェクト識別子"
+    End If
+    If Len(miss) > 0 Then
+        MsgBox "「" & CFG_SHEET & "」シートの次の項目が未入力です。" & miss, vbExclamation
+        Exit Function
+    End If
+    If InStr(1, CfgS(cfg, "RedmineのURL"), "://", vbTextCompare) = 0 Then
+        MsgBox "RedmineのURL は http:// または https:// から入力してください。", vbExclamation
+        Exit Function
+    End If
+    ValidateConfig = True
+End Function
+
+Private Function BaseUrl(cfg As Object) As String
+    Dim s As String
+    s = CfgS(cfg, "RedmineのURL")
+    Do While Right$(s, 1) = "/"
+        s = Left$(s, Len(s) - 1)
+    Loop
+    BaseUrl = s
+End Function
+
+Private Function CfgS(cfg As Object, ByVal key As String) As String
+    Dim k As String: k = NormalizeKey(key)
+    If cfg Is Nothing Then Exit Function
+    If cfg.Exists(k) Then CfgS = TrimSpaces(CStr(cfg(k)))
+End Function
+
+Private Function CfgL(cfg As Object, ByVal key As String, ByVal defVal As Long) As Long
+    Dim s As String: s = CfgS(cfg, key)
+    If Len(s) = 0 Or Not IsNumeric(s) Then
+        CfgL = defVal
+    Else
+        CfgL = CLng(Val(s))
+    End If
+End Function
+
+Private Function CfgB(cfg As Object, ByVal key As String, ByVal defVal As Boolean) As Boolean
+    Dim s As String: s = LCase$(CfgS(cfg, key))
+    Select Case s
+        Case "true", "1", "-1", "yes", "y", "○", "◯", "〇", "はい", "する"
+            CfgB = True
+        Case "false", "0", "no", "n", "×", "✕", "いいえ", "しない"
+            CfgB = False
+        Case ""
+            CfgB = defVal
+        Case Else
+            CfgB = defVal
+    End Select
+End Function
+
+' 行の上書き値があればそちら、無ければ設定シートの値
+Private Function PickVal(ov As Object, ByVal rowKey As String, cfg As Object, ByVal cfgKey As String) As String
+    If Not ov Is Nothing Then
+        If ov.Exists(rowKey) Then
+            PickVal = CStr(ov(rowKey))
+            Exit Function
+        End If
+    End If
+    PickVal = CfgS(cfg, cfgKey)
+End Function
+
+' 設定キーの表記ゆれ吸収（空白・全角半角・大小文字）
+Private Function NormalizeKey(ByVal s As String) As String
+    Dim t As String
+    t = Replace$(CStr(s), " ", "")
+    t = Replace$(t, "　", "")
+    t = Replace$(t, "(", "（")
+    t = Replace$(t, ")", "）")
+    On Error Resume Next
+    t = StrConv(t, vbNarrow)
+    On Error GoTo 0
+    NormalizeKey = LCase$(t)
+End Function
+
+
+'======================================================================
+'  JSON（軽量）
+'======================================================================
+Private Function JsonEsc(ByVal s As String) As String
+    Dim i As Long, ch As String, code As Long, out As String
+    s = Replace$(s, vbCrLf, vbLf)
+    s = Replace$(s, vbCr, vbLf)
+    s = Replace$(s, Chr$(11), vbLf)      ' 図形内の手動改行
+    For i = 1 To Len(s)
+        ch = Mid$(s, i, 1)
+        Select Case ch
+            Case """": out = out & "\"""
+            Case "\": out = out & "\\"
+            Case vbLf: out = out & "\n"
+            Case vbTab: out = out & "\t"
+            Case Else
+                code = AscW(ch)
+                If code < 0 Then code = code + 65536
+                If code < 32 Then
+                    out = out & "\u" & Right$("000" & Hex$(code), 4)
+                Else
+                    out = out & ch
+                End If
+        End Select
+    Next i
+    JsonEsc = out
+End Function
+
+Private Function JsonUnesc(ByVal s As String) As String
+    Dim i As Long, ch As String, nx As String, out As String
+    i = 1
+    Do While i <= Len(s)
+        ch = Mid$(s, i, 1)
+        If ch = "\" And i < Len(s) Then
+            nx = Mid$(s, i + 1, 1)
+            Select Case nx
+                Case "n": out = out & vbLf: i = i + 2
+                Case "r": out = out & vbCr: i = i + 2
+                Case "t": out = out & vbTab: i = i + 2
+                Case "u"
+                    If i + 5 <= Len(s) Then
+                        out = out & ChrW$(CLng("&H" & Mid$(s, i + 2, 4)))
+                        i = i + 6
+                    Else
+                        out = out & nx: i = i + 2
+                    End If
+                Case Else: out = out & nx: i = i + 2
+            End Select
+        Else
+            out = out & ch
+            i = i + 1
+        End If
+    Loop
+    JsonUnesc = out
+End Function
+
+' "key": 123 の数値を取り出す（最初の1つ）
+Private Function JsonNumber(ByVal json As String, ByVal key As String) As Long
+    Dim re As Object: Set re = CreateObject("VBScript.RegExp")
+    re.Global = False
+    re.Pattern = """" & key & """\s*:\s*(\d+)"
+    Dim mc As Object: Set mc = re.Execute(json)
+    If mc.Count > 0 Then JsonNumber = CLng(mc(0).SubMatches(0))
+End Function
+
+' "key": "値" の文字列を取り出す（最初の1つ）
+Private Function JsonString(ByVal json As String, ByVal key As String) As String
+    Dim re As Object: Set re = CreateObject("VBScript.RegExp")
+    re.Global = False
+    re.Pattern = """" & key & """\s*:\s*""((?:[^""\\]|\\.)*)"""
+    Dim mc As Object: Set mc = re.Execute(json)
+    If mc.Count > 0 Then JsonString = JsonUnesc(mc(0).SubMatches(0))
+End Function
+
+' "status":{"id":1,"name":"新規"} の name を取り出す
+Private Function JsonSubName(ByVal json As String, ByVal objKey As String) As String
+    Dim re As Object: Set re = CreateObject("VBScript.RegExp")
+    re.Global = False
+    re.Pattern = """" & objKey & """\s*:\s*\{[^}]*""name""\s*:\s*""((?:[^""\\]|\\.)*)"""
+    Dim mc As Object: Set mc = re.Execute(json)
+    If mc.Count > 0 Then JsonSubName = JsonUnesc(mc(0).SubMatches(0))
+End Function
+
+' {"errors":["…","…"]} を読める形にする
+Private Function JsonErrors(ByVal json As String) As String
+    Dim p As Long, q As Long, seg As String
+    p = InStr(1, json, """errors""", vbTextCompare)
+    If p = 0 Then
+        JsonErrors = Left$(TrimSpaces(json), 200)
+        Exit Function
+    End If
+    p = InStr(p, json, "[")
+    q = InStr(p, json, "]")
+    If p = 0 Or q = 0 Then Exit Function
+    seg = Mid$(json, p + 1, q - p - 1)
+
+    Dim re As Object: Set re = CreateObject("VBScript.RegExp")
+    re.Global = True
+    re.Pattern = """((?:[^""\\]|\\.)*)"""
+    Dim mc As Object, m As Object, out As String
+    Set mc = re.Execute(seg)
+    For Each m In mc
+        If Len(out) > 0 Then out = out & " / "
+        out = out & JsonUnesc(m.SubMatches(0))
+    Next m
+    JsonErrors = out
+End Function
+
+' 値があるときだけ ,"key":123 を返す
+Private Function NumField(ByVal key As String, ByVal val As String) As String
+    Dim s As String: s = TrimSpaces(val)
+    If Len(s) = 0 Then Exit Function
+    If Not IsNumeric(s) Then Exit Function
+    NumField = ",""" & key & """:" & CLng(Val(s))
+End Function
+
+' 値があるときだけ ,"key":"文字列" を返す
+Private Function StrField(ByVal key As String, ByVal val As String) As String
+    If Len(TrimSpaces(val)) = 0 Then Exit Function
+    StrField = ",""" & key & """:""" & JsonEsc(TrimSpaces(val)) & """"
+End Function
+
+' 期日を Redmine が受け取る yyyy-mm-dd に整える
+Private Function DateFieldValue(ByVal v As String) As String
+    Dim s As String: s = TrimSpaces(v)
+    If Len(s) = 0 Then Exit Function
+    If IsDate(s) Then
+        DateFieldValue = Format$(CDate(s), "yyyy-mm-dd")
+    ElseIf IsNumeric(s) Then
+        DateFieldValue = Format$(CDate(CDbl(s)), "yyyy-mm-dd")   ' セルのシリアル値
+    Else
+        DateFieldValue = s
+    End If
+End Function
+
+
+'======================================================================
+'  文字コード（UTF-8）
+'======================================================================
+Private Function Utf8Bytes(ByVal s As String) As Variant
+    Dim st As Object: Set st = CreateObject("ADODB.Stream")
+    st.Type = 2                      ' adTypeText
+    st.Charset = "utf-8"
+    st.Open
+    st.WriteText s
+    st.Position = 0
+    st.Type = 1                      ' adTypeBinary
+    st.Position = 3                  ' BOM(EF BB BF)を読み飛ばす
+    Utf8Bytes = st.Read
+    st.Close
+End Function
+
+Private Function Utf8Text(ByRef bytes As Variant) As String
+    On Error GoTo Fallback
+    If IsEmpty(bytes) Then Exit Function
+    Dim ub As Long: ub = -1
+    On Error Resume Next
+    ub = UBound(bytes)                  ' 空レスポンスは配列にならない
+    On Error GoTo Fallback
+    If ub < 0 Then Exit Function
+    Dim st As Object: Set st = CreateObject("ADODB.Stream")
+    st.Type = 1
+    st.Open
+    st.Write bytes
+    st.Position = 0
+    st.Type = 2
+    st.Charset = "utf-8"
+    Utf8Text = st.ReadText
+    st.Close
+    Exit Function
+Fallback:
+    On Error Resume Next
+    Utf8Text = CStr(bytes)
+End Function
+
+
+'======================================================================
+'  シート・列・その他ヘルパー
+'======================================================================
+' 一覧シートの判定：アクティブシートが一覧なら優先、違えば名前で探す
+Private Function ResolveListSheet() As Worksheet
+    Dim wb As Workbook: Set wb = ActiveWorkbook
+    If wb Is Nothing Then Exit Function
+
+    If TypeName(ActiveSheet) = "Worksheet" Then
+        Dim aw As Worksheet: Set aw = ActiveSheet
+        If Left$(aw.Name, Len(LIST_PREFIX)) = LIST_PREFIX Then
+            Set ResolveListSheet = aw
+            Exit Function
+        End If
+        ' 名前が違っても、確認事項列に見出しがあれば一覧とみなす
+        If Len(TrimSpaces(CStr(aw.Cells(HDR_ROW, COL_ITEM).Value))) > 0 And _
+           aw.Name <> CFG_SHEET And aw.Name <> MASTER_SHEET Then
+            Set ResolveListSheet = aw
+            Exit Function
+        End If
+    End If
+
+    Dim ws As Worksheet
+    For Each ws In wb.Worksheets
+        If Left$(ws.Name, Len(LIST_PREFIX)) = LIST_PREFIX Then
+            Set ResolveListSheet = ws
+            Exit Function
+        End If
+    Next ws
+End Function
+
+Private Function SheetOrNothing(wb As Workbook, ByVal nm As String) As Worksheet
+    On Error Resume Next
+    Set SheetOrNothing = wb.Worksheets(nm)
+    On Error GoTo 0
+End Function
+
+Private Function GetOrAddSheet(wb As Workbook, ByVal nm As String) As Worksheet
+    Dim ws As Worksheet
+    Set ws = SheetOrNothing(wb, nm)
+    If ws Is Nothing Then
+        Set ws = wb.Worksheets.Add(After:=wb.Worksheets(wb.Worksheets.Count))
+        ws.Name = nm
+    End If
+    Set GetOrAddSheet = ws
+End Function
+
+' 見出し行から列を探す。無ければ 0。
+Private Function FindColumn(ws As Worksheet, ByVal header As String) As Long
+    Dim c As Long, want As String
+    want = NormalizeKey(header)
+    For c = 1 To MAX_SCAN_COL
+        If NormalizeKey(CStr(ws.Cells(HDR_ROW, c).Value)) = want Then
+            FindColumn = c
+            Exit Function
+        End If
+    Next c
+End Function
+
+' 見出し行から列を探し、無ければ右端に追加して列番号を返す
+Private Function EnsureColumn(ws As Worksheet, ByVal header As String) As Long
+    Dim c As Long
+    c = FindColumn(ws, header)
+    If c > 0 Then
+        EnsureColumn = c
+        Exit Function
+    End If
+    c = ws.Cells(HDR_ROW, ws.Columns.Count).End(xlToLeft).Column + 1
+    If c < 1 Then c = 1
+    ws.Cells(HDR_ROW, c).Value = header
+    ws.Cells(HDR_ROW, c).Font.Bold = True
+    ws.Columns(c).ColumnWidth = 18
+    EnsureColumn = c
+End Function
+
+' データ最終行（確認事項列で判定）
+Private Function LastDataRow(ws As Worksheet) As Long
+    LastDataRow = ws.Cells(ws.Rows.Count, COL_ITEM).End(xlUp).Row
+    If LastDataRow < FIRST_DATA_ROW - 1 Then LastDataRow = FIRST_DATA_ROW - 1
+End Function
+
+Private Function TrimSpaces(ByVal s As String) As String
+    Dim t As String: t = CStr(s)
+    Do While Len(t) > 0
+        Select Case Left$(t, 1)
+            Case " ", "　", vbTab, vbCr, vbLf, Chr$(11)
+                t = Mid$(t, 2)
+            Case Else
+                Exit Do
+        End Select
+    Loop
+    Do While Len(t) > 0
+        Select Case Right$(t, 1)
+            Case " ", "　", vbTab, vbCr, vbLf, Chr$(11)
+                t = Left$(t, Len(t) - 1)
+            Case Else
+                Exit Do
+        End Select
+    Loop
+    TrimSpaces = t
+End Function
+
+' 図形由来の改行（Chr(11)）や CR を LF に揃える
+Private Function NormalizeBreaks(ByVal s As String) As String
+    Dim t As String
+    t = Replace$(s, vbCrLf, vbLf)
+    t = Replace$(t, vbCr, vbLf)
+    t = Replace$(t, Chr$(11), vbLf)
+    NormalizeBreaks = t
+End Function
+
+' Application.Wait は1秒刻みのため、短い待ちは自前で回す
+Private Sub PauseMs(ByVal ms As Long)
+    If ms <= 0 Then Exit Sub
+    Dim t0 As Double: t0 = Timer
+    Do
+        DoEvents
+        If Timer < t0 Then Exit Do              ' 日付をまたいだ場合
+    Loop While (Timer - t0) * 1000 < ms
+End Sub
