@@ -1,0 +1,481 @@
+<title>賦課金申告 税額控除の画面案</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+  /* layout: 前提と差分の要約 → 事業者ポータル3画面 → 内部業務2画面。各画面はブラウザ枠つきのモックを縦に並べる */
+  :root{
+    --ground:#f7f8f7; --panel:#ffffff; --ink:#1c2422; --ink-2:#5a6663;
+    --line:#dde3e0; --accent:#0e6a58; --accent-ink:#ffffff; --accent-soft:#e3f0ec;
+    --gov:#2b4a6f; --gov-soft:#e7edf4;
+    --good:#1a7a3c; --good-bg:#e2f2e7; --warn:#9a6a00; --warn-bg:#faf0d6;
+    --bad:#b3362b; --bad-bg:#fbe7e4; --info:#175a8c; --info-bg:#e2eef7;
+    --chip-draft:#68716e; --chip-draft-bg:#eceeed;
+    --shadow:0 1px 3px rgba(28,36,34,.08), 0 4px 16px rgba(28,36,34,.06);
+    --f-ui:"Hiragino Kaku Gothic ProN","Hiragino Sans","Yu Gothic UI","Yu Gothic","Meiryo",system-ui,sans-serif;
+    --f-mono:ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --ground:#151a19; --panel:#1e2523; --ink:#e8edeb; --ink-2:#9aa6a2;
+      --line:#333d3a; --accent:#4fb59c; --accent-ink:#0c1512; --accent-soft:#20332e;
+      --gov:#7da3cc; --gov-soft:#1f2a38;
+      --good:#6fce8f; --good-bg:#1d3325; --warn:#e3b95a; --warn-bg:#37301c;
+      --bad:#ef8d82; --bad-bg:#3b211e; --info:#7db6e0; --info-bg:#1c2f3d;
+      --chip-draft:#a3adaa; --chip-draft-bg:#2a3230;
+      --shadow:0 1px 3px rgba(0,0,0,.4), 0 4px 16px rgba(0,0,0,.3);
+      color-scheme:dark;
+    }
+  }
+  :root[data-theme="dark"]{
+    --ground:#151a19; --panel:#1e2523; --ink:#e8edeb; --ink-2:#9aa6a2;
+    --line:#333d3a; --accent:#4fb59c; --accent-ink:#0c1512; --accent-soft:#20332e;
+    --gov:#7da3cc; --gov-soft:#1f2a38;
+    --good:#6fce8f; --good-bg:#1d3325; --warn:#e3b95a; --warn-bg:#37301c;
+    --bad:#ef8d82; --bad-bg:#3b211e; --info:#7db6e0; --info-bg:#1c2f3d;
+    --chip-draft:#a3adaa; --chip-draft-bg:#2a3230;
+    --shadow:0 1px 3px rgba(0,0,0,.4), 0 4px 16px rgba(0,0,0,.3);
+    color-scheme:dark;
+  }
+  *{box-sizing:border-box}
+  body{background:var(--ground);color:var(--ink);font-family:var(--f-ui);line-height:1.65;margin:0;font-size:15px}
+  .wrap{max-width:1080px;margin:0 auto;padding-block:2.5rem 5rem;
+    padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px))}
+  h1{font-size:1.55rem;line-height:1.4;margin:0 0 .35rem;text-wrap:balance}
+  .lede{color:var(--ink-2);max-width:48em;margin:0 0 .75rem}
+  .disclaimer{font-size:.8rem;color:var(--ink-2);background:var(--panel);border:1px solid var(--line);
+    border-radius:6px;padding:.6rem .9rem;margin:1rem 0 2rem;max-width:60em}
+  .summary{margin:0 0 3rem}
+  .summary h2{font-size:1rem;margin:0 0 .2rem}
+  .group{font-size:.78rem;font-weight:700;letter-spacing:.08em;color:var(--ink-2);margin:0 0 1.2rem;
+    padding-bottom:.4rem;border-bottom:1px solid var(--line)}
+
+  .screen{margin:0 0 3.5rem}
+  .screen-head{display:flex;align-items:baseline;gap:.75rem;margin-bottom:.35rem;flex-wrap:wrap}
+  .screen-tag{font-size:.72rem;font-weight:700;letter-spacing:.08em;color:var(--accent);
+    border:1px solid var(--accent);border-radius:4px;padding:.1rem .5rem;white-space:nowrap}
+  .screen-tag.gov{color:var(--gov);border-color:var(--gov)}
+  .screen-head h2{font-size:1.15rem;margin:0;text-wrap:balance}
+  .biz{font-size:.7rem;color:var(--ink-2);background:var(--panel);border:1px solid var(--line);border-radius:99px;padding:.08rem .6rem}
+  .screen-note{color:var(--ink-2);font-size:.85rem;margin:0 0 1rem;max-width:56em}
+
+  .frame{background:var(--panel);border:1px solid var(--line);border-radius:10px;box-shadow:var(--shadow);overflow:hidden}
+  .chrome{display:flex;align-items:center;gap:.6rem;padding:.5rem .9rem;border-bottom:1px solid var(--line);
+    background:color-mix(in srgb, var(--panel) 60%, var(--ground))}
+  .dots{display:flex;gap:5px}
+  .dots i{width:9px;height:9px;border-radius:50%;background:var(--line);display:block}
+  .urlbar{flex:1;min-width:0;font-size:.72rem;color:var(--ink-2);background:var(--ground);border:1px solid var(--line);
+    border-radius:99px;padding:.18rem .8rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .appbar{display:flex;align-items:center;gap:1rem;padding:.7rem 1.4rem;background:var(--accent);color:var(--accent-ink);flex-wrap:wrap}
+  .appbar.gov{background:var(--gov)}
+  .appbar .logo{font-weight:800;font-size:.95rem}
+  .appbar .logo small{font-weight:500;opacity:.85;margin-left:.5rem;font-size:.72rem}
+  .appbar .user{margin-left:auto;font-size:.75rem;opacity:.9}
+  .layout{display:flex;min-height:320px}
+  .nav{width:200px;border-right:1px solid var(--line);padding:.9rem 0;flex-shrink:0}
+  .nav a{display:block;padding:.45rem 1.1rem;color:var(--ink-2);text-decoration:none;font-size:.84rem;border-left:3px solid transparent}
+  .nav a.on{color:var(--accent);border-left-color:var(--accent);background:var(--accent-soft);font-weight:700}
+  .gov-t .nav a.on{color:var(--gov);border-left-color:var(--gov);background:var(--gov-soft)}
+  .main{flex:1;padding:1.4rem 1.6rem;min-width:0}
+  .main h3{font-size:1.05rem;margin:0 0 .25rem}
+  .main h4{font-size:.9rem;margin:1.5rem 0 .3rem}
+  .crumb{font-size:.72rem;color:var(--ink-2);margin:0 0 .9rem}
+  @media (max-width:720px){.nav{display:none}.main{padding:1.1rem 1rem}}
+
+  .btn{display:inline-block;background:var(--accent);color:var(--accent-ink);border:none;border-radius:6px;
+    padding:.5rem 1.15rem;font-size:.85rem;font-weight:700;cursor:pointer;font-family:inherit}
+  .btn:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+  .gov-t .btn{background:var(--gov)}
+  .btn.ghost{background:transparent;color:var(--accent);border:1.5px solid var(--accent)}
+  .gov-t .btn.ghost{color:var(--gov);border-color:var(--gov)}
+  .btn.danger,.gov-t .btn.danger{background:transparent;color:var(--bad);border:1.5px solid var(--bad)}
+  .btn.sm{padding:.3rem .8rem;font-size:.78rem}
+  .btn.lg{padding:.6rem 1.6rem}
+  .actions{display:flex;gap:.75rem;margin-top:1.4rem;flex-wrap:wrap}
+
+  table{border-collapse:collapse;width:100%;font-size:.82rem}
+  .tblwrap{overflow-x:auto;border:1px solid var(--line);border-radius:8px;margin-top:.6rem}
+  th{font-size:.71rem;color:var(--ink-2);text-align:left;font-weight:700;padding:.5rem .75rem;
+    border-bottom:1px solid var(--line);background:color-mix(in srgb, var(--panel) 55%, var(--ground));white-space:nowrap}
+  td{padding:.55rem .75rem;border-bottom:1px solid var(--line);white-space:nowrap;vertical-align:middle}
+  tr:last-child td{border-bottom:none}
+  .num{text-align:right;font-variant-numeric:tabular-nums}
+  th.num{text-align:right}
+  tr.sum td{font-weight:800;background:color-mix(in srgb, var(--panel) 55%, var(--ground))}
+  td small{display:block;font-size:.7rem;color:var(--ink-2);line-height:1.35}
+  .id{font-family:var(--f-mono);font-size:.78rem}
+  .pill{font-size:.71rem;font-weight:700;border-radius:99px;padding:.13rem .6rem;white-space:nowrap}
+  .p-review{color:var(--warn);background:var(--warn-bg)}
+  .p-done{color:var(--good);background:var(--good-bg)}
+  .p-back{color:var(--bad);background:var(--bad-bg)}
+  .p-draft{color:var(--chip-draft);background:var(--chip-draft-bg)}
+  .p-fixed{color:var(--info);background:var(--info-bg)}
+  .new{font-size:.66rem;font-weight:700;color:var(--info);background:var(--info-bg);border:1px solid var(--info);
+    border-radius:4px;padding:0 .4rem;margin-left:.5rem;vertical-align:.1em;letter-spacing:.06em;white-space:nowrap}
+  .meta{display:flex;gap:.5rem 1rem;flex-wrap:wrap;align-items:center;font-size:.78rem;color:var(--ink-2);margin:.5rem 0 0}
+
+  .steps{display:flex;gap:0;margin:.9rem 0 1.1rem;font-size:.72rem;color:var(--ink-2);flex-wrap:wrap}
+  .step{display:flex;align-items:center;gap:.4rem;padding:.3rem .9rem .3rem .6rem;border:1px solid var(--line);border-right:none;background:var(--panel)}
+  .step:first-child{border-radius:6px 0 0 6px}
+  .step:last-child{border-right:1px solid var(--line);border-radius:0 6px 6px 0}
+  .step b{width:1.15rem;height:1.15rem;border-radius:50%;background:var(--line);color:var(--ink);
+    display:inline-flex;align-items:center;justify-content:center;font-size:.68rem}
+  .step.on{color:var(--accent);font-weight:700;background:var(--accent-soft)}
+  .step.on b{background:var(--accent);color:var(--accent-ink)}
+  .step.done b{background:var(--good);color:var(--accent-ink)}
+
+  .formgrid{display:grid;grid-template-columns:1fr 1fr;gap:.9rem 1.4rem;margin-top:.5rem}
+  @media (max-width:720px){.formgrid{grid-template-columns:1fr}}
+  .field{display:flex;flex-direction:column;gap:.25rem;min-width:0}
+  .field.full{grid-column:1/-1}
+  .field label,.field .lab{font-size:.76rem;font-weight:700}
+  .input{border:1px solid var(--line);border-radius:6px;background:var(--ground);
+    padding:.45rem .7rem;font-size:.85rem;color:var(--ink);font-family:inherit;width:100%}
+  .hint{font-size:.72rem;color:var(--ink-2)}
+  p.hint{margin:.45rem 0 0;max-width:60em}
+
+  .opts{display:grid;grid-template-columns:1fr 1fr;gap:.8rem;margin-top:.6rem}
+  @media (max-width:720px){.opts{grid-template-columns:1fr}}
+  .opt{border:1.5px solid var(--line);border-radius:8px;padding:.7rem .9rem;font-size:.84rem;display:flex;gap:.6rem;align-items:flex-start;min-width:0}
+  .opt i{flex:none;width:1rem;height:1rem;border-radius:50%;border:2px solid var(--ink-2);margin-top:.2rem;display:block}
+  .opt.on{border-color:var(--accent);background:var(--accent-soft)}
+  .opt.on i{border-color:var(--accent);box-shadow:inset 0 0 0 3px var(--panel);background:var(--accent)}
+  .opt b{display:block}
+  .opt span{color:var(--ink-2);font-size:.76rem}
+
+  .calc{border:1.5px solid var(--accent);border-radius:8px;background:var(--accent-soft);padding:1rem 1.2rem;margin-top:1.1rem}
+  .gov-t .calc{border-color:var(--gov);background:var(--gov-soft)}
+  .calc h5{margin:0 0 .5rem;font-size:.82rem;color:var(--accent);letter-spacing:.04em}
+  .gov-t .calc h5{color:var(--gov)}
+  .calc table td{border-bottom:1px dashed color-mix(in srgb, var(--accent) 30%, transparent);background:transparent;padding:.4rem .2rem;white-space:normal}
+  .calc table td.num{white-space:nowrap}
+  .calc tr.total td{border-bottom:none;font-weight:800;font-size:1.02rem;padding-top:.55rem}
+  .calc .formula{font-size:.72rem;color:var(--ink-2);margin:.5rem 0 0}
+  .muted{color:var(--ink-2)}
+
+  .alert{display:flex;gap:.7rem;font-size:.8rem;border-radius:6px;padding:.6rem .9rem;margin-top:1rem;align-items:flex-start}
+  .alert.warn{color:var(--warn);background:var(--warn-bg)}
+  .alert.info{color:var(--info);background:var(--info-bg)}
+  .alert.bad{color:var(--bad);background:var(--bad-bg)}
+  .alert b{flex-shrink:0}
+  .filechip{display:inline-flex;align-items:center;gap:.4rem;font-size:.72rem;background:var(--ground);
+    border:1px solid var(--line);border-radius:99px;padding:.1rem .6rem}
+  .off{opacity:.45}
+
+  .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:.8rem;margin-top:.9rem}
+  .kpi{border:1px solid var(--line);border-radius:8px;padding:.75rem .9rem;min-width:0}
+  .kpi .v{font-size:1.3rem;font-weight:800;font-variant-numeric:tabular-nums;line-height:1.25}
+  .kpi .l{font-size:.72rem;color:var(--ink-2)}
+  .kpi.key{border-color:var(--gov)}
+  .kpi.key .v{color:var(--gov)}
+
+  .check{display:flex;flex-direction:column;gap:.35rem;margin-top:.5rem;font-size:.82rem}
+  .check .ok::before{content:"✓ ";color:var(--good);font-weight:800}
+  ol.proc{margin:.5rem 0 0;padding-left:1.4rem;font-size:.84rem;display:flex;flex-direction:column;gap:.3rem}
+  ol.proc span{color:var(--ink-2)}
+  .track{display:flex;gap:0;margin-top:1rem;flex-wrap:wrap}
+  .tnode{flex:1;min-width:96px;text-align:center;position:relative;padding-top:1.5rem;font-size:.73rem;color:var(--ink-2)}
+  .tnode::before{content:"";position:absolute;top:.55rem;left:50%;width:100%;height:2px;background:var(--line)}
+  .tnode:last-child::before{display:none}
+  .tnode i{position:absolute;top:.15rem;left:calc(50% - .42rem);width:.85rem;height:.85rem;border-radius:50%;
+    background:var(--panel);border:2.5px solid var(--line);z-index:1}
+  .tnode.done i{background:var(--good);border-color:var(--good)}
+  .tnode.done::before{background:var(--good)}
+  .tnode.now i{border-color:var(--warn)}
+  .tnode.now{color:var(--warn);font-weight:700}
+  .tnode small{display:block;font-size:.66rem;font-weight:400;color:var(--ink-2)}
+  dl.kv{display:grid;grid-template-columns:max-content 1fr;gap:.35rem 1.2rem;font-size:.84rem;margin:.8rem 0 0}
+  dl.kv dt{color:var(--ink-2);font-size:.76rem;padding-top:.1rem}
+  dl.kv dd{margin:0;min-width:0}
+  .foot{border-top:1px solid var(--line);margin-top:3rem;padding-top:1rem;font-size:.75rem;color:var(--ink-2);max-width:62em}
+</style>
+
+<div class="wrap">
+  <h1>賦課金額の控除を含む申告の画面イメージ案</h1>
+  <p class="lede">政令で「賦課金額からの控除」(戻入れ、移入後の再移出など)が導入された場合に、申告と還付の画面がどう変わるかを示します。控除額が賦課金額を上回ると、申告そのものが還付請求になります。</p>
+  <p class="disclaimer">課題#54のヘッジ用の案です。現行の暫定想定では初期リリースの対象外で、控除制度の有無・要件は政令待ちです。控除の建付けは石油石炭税法12条・13条を参考にしています。単価(2,500円/t-CO₂)、係数、期限、利率、事業者名、番号はすべて仮置きです。<span class="new">追加</span> は現行の画面にない項目です。</p>
+
+  <div class="summary">
+    <h2>現行の画面からの差分</h2>
+    <div class="tblwrap">
+      <table>
+        <thead><tr><th>画面</th><th>追加・変更する内容</th><th>理由</th></tr></thead>
+        <tbody>
+          <tr><td>P-3 賦課金申告</td><td style="white-space:normal">控除明細の入力、4段の計算結果(賦課金額・控除額・納付すべき額・還付を受ける額)、還付先口座の表示</td><td style="white-space:normal">控除額が賦課金額を上回ると納付0円・還付になる</td></tr>
+          <tr><td>P-3 賦課金申告</td><td style="white-space:normal">申告区分「還付請求申告」(移出・引取りがない月)</td><td style="white-space:normal">申告義務のない月でも控除分の還付を請求できるようにする</td></tr>
+          <tr><td>P-3 賦課金申告</td><td style="white-space:normal">提出期限後は控除欄を使えなくするチェック</td><td style="white-space:normal">参考制度では控除は期限内申告に限られる</td></tr>
+          <tr><td>G-3 申告審査</td><td style="white-space:normal">控除の検証(元の申告との突合、残数量、二重控除)、承認時の還付事案の自動起票</td><td style="white-space:normal">申請書なしで還付が発生するため、審査の中で根拠を確かめる</td></tr>
+          <tr><td>G-6 還付審査・支払</td><td style="white-space:normal">還付事案の種別「申告控除不足」、還付加算金の起算日(申告書の提出期限の翌日)</td><td style="white-space:normal">過納還付と起点も起算日も異なる</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <p class="group">事業者ポータル</p>
+
+  <!-- ============ 画面1 ============ -->
+  <section class="screen">
+    <div class="screen-head"><span class="screen-tag">P-3</span><h2>賦課金申告(控除額が賦課金額を上回る月)</h2><span class="biz">対応業務 B-1|帳票 F02</span></div>
+    <p class="screen-note">国内採取者が、7月に移出した原油の一部を9月に採取場へ戻し入れた例です。明細の下に控除の入力欄を足し、計算結果を4段にします。還付になるときは、提出前に還付先口座を見せます。</p>
+    <div class="frame">
+      <div class="chrome"><span class="dots"><i></i><i></i><i></i></span><span class="urlbar">https://portal.gxa.go.jp/levy/declaration/2028-09</span></div>
+      <div class="appbar"><span class="logo">GX推進機構 賦課金ポータル<small>事業者用</small></span><span class="user">△△資源開発株式会社</span></div>
+      <div class="layout">
+        <nav class="nav" aria-label="ポータルメニュー">
+          <a href="#">ホーム</a><a href="#">届出</a><a href="#" class="on">賦課金申告</a><a href="#">申告・納付状況</a><a href="#">還付申請</a><a href="#">通知書一覧</a>
+        </nav>
+        <div class="main">
+          <p class="crumb">賦課金申告 &gt; 2028年度9月分</p>
+          <h3>化石燃料賦課金 申告書(2028年度 9月分)</h3>
+          <div class="meta"><span class="pill p-done">期限内申告</span><span>提出期限 2028-10-31</span><span>本日 2028-10-20</span></div>
+          <div class="steps">
+            <span class="step done"><b>✓</b>対象期間</span>
+            <span class="step done"><b>✓</b>実績取込</span>
+            <span class="step on"><b>3</b>明細・控除</span>
+            <span class="step"><b>4</b>確認・提出</span>
+          </div>
+
+          <h4>申告明細(当月の移出分)</h4>
+          <div class="tblwrap">
+            <table>
+              <thead><tr><th>燃料種別</th><th>採取場</th><th class="num">移出数量</th><th>単位</th><th class="num">CO₂係数</th><th class="num">賦課対象CO₂量(t-CO₂)</th><th class="num">賦課金額(円)</th></tr></thead>
+              <tbody>
+                <tr><td>原油</td><td>新潟〇〇鉱場</td><td class="num">1,000.000</td><td>kL</td><td class="num">2.619</td><td class="num">2,619.000</td><td class="num">6,547,500</td></tr>
+                <tr><td>天然ガス</td><td>新潟〇〇鉱場</td><td class="num">500.000</td><td>t</td><td class="num">2.700</td><td class="num">1,350.000</td><td class="num">3,375,000</td></tr>
+                <tr class="sum"><td>合計</td><td></td><td></td><td></td><td></td><td class="num">3,969.000</td><td class="num">9,922,500</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h4>賦課金額の控除<span class="new">追加</span></h4>
+          <p class="hint">移出した化石燃料を採取場に戻し入れた場合などに、すでに申告した賦課金額を今月の賦課金額から差し引きます。</p>
+          <div class="tblwrap">
+            <table>
+              <thead><tr><th>控除する理由</th><th>元の申告</th><th>燃料種別</th><th class="num">数量</th><th class="num">元申告時の単価<br>(円/t-CO₂)</th><th class="num">控除額(円)</th><th>証憑</th></tr></thead>
+              <tbody>
+                <tr><td>戻入れ<small>同じ採取場へ 2028-09-12</small></td><td><span class="id">LV-2028-000540</span><small>自社 7月分・完納</small></td><td>原油</td><td class="num">1,800.000 kL</td><td class="num">2,500</td><td class="num">11,785,500</td><td><span class="filechip">受払簿.pdf</span></td></tr>
+                <tr><td>移入後の再移出<small>移入 2028-08-30</small></td><td><span class="id">LV-2028-000498</span><small>□□鉱業 6月分・完納</small></td><td>原油</td><td class="num">200.000 kL</td><td class="num">2,500</td><td class="num">1,309,500</td><td><span class="filechip">移入証明.pdf</span></td></tr>
+                <tr class="sum"><td>控除額合計</td><td></td><td></td><td></td><td></td><td class="num">13,095,000</td><td></td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p class="hint">戻入れ 1,800.000 kL は、元の申告の移出数量 4,200.000 kL(控除済み 0.000 kL)の範囲内です。</p>
+          <div class="actions" style="margin-top:.7rem"><button type="button" class="btn ghost sm" id="add-deduction">控除を追加</button></div>
+
+          <div class="calc">
+            <h5>計算結果(自動計算)<span class="new">4段に変更</span></h5>
+            <table>
+              <tr><td>① 賦課金額合計</td><td class="num">9,922,500 円</td></tr>
+              <tr><td>② 控除額合計</td><td class="num">13,095,000 円</td></tr>
+              <tr><td>③ 納付すべき額(①−②、100円未満切り捨て)</td><td class="num">0 円</td></tr>
+              <tr class="total"><td>④ 還付を受ける額(②−①)</td><td class="num">3,172,500 円</td></tr>
+            </table>
+            <p class="formula">控除額 = 元の申告の数量 × CO₂排出係数 × 元申告時の単価。②が①を上回る分が還付されます。</p>
+          </div>
+
+          <div class="alert info"><b>案内</b><span>この申告は還付請求を兼ねます。今月分の納付は不要です。審査で控除が認められると、3,172,500円を下の口座に還付します。別に還付申請を出す必要はありません。</span></div>
+
+          <h4>還付先口座<span class="new">追加</span></h4>
+          <div class="formgrid">
+            <div class="field full">
+              <label for="acct-1">届出済みの口座</label>
+              <input class="input" id="acct-1" readonly value="〇〇銀行 新潟支店 普通 ****4321 △△シゲンカイハツ(カ">
+              <span class="hint">変更は「届出」から行います。変更後90日以内の還付は追加の確認があります。</span>
+            </div>
+          </div>
+          <div class="actions"><button type="button" class="btn ghost" id="save-1">下書き保存</button><button type="button" class="btn lg" id="next-1">確認・提出へ</button></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 画面2 ============ -->
+  <section class="screen">
+    <div class="screen-head"><span class="screen-tag">P-3</span><h2>還付請求申告(移出・引取りがない月)</h2><span class="biz">対応業務 B-1|帳票 F02</span></div>
+    <p class="screen-note">当月に移出がなく申告義務がない月でも、控除できる額があれば還付だけを請求できます。対象期間を選んだ直後に実績の有無を聞き、明細の入力を省きます。提出時期と還付加算金の起算日は政令待ちです(参考制度では随時提出でき、起算日は提出月の末日の翌日)。</p>
+    <div class="frame">
+      <div class="chrome"><span class="dots"><i></i><i></i><i></i></span><span class="urlbar">https://portal.gxa.go.jp/levy/declaration/2028-11</span></div>
+      <div class="appbar"><span class="logo">GX推進機構 賦課金ポータル<small>事業者用</small></span><span class="user">△△資源開発株式会社</span></div>
+      <div class="layout">
+        <nav class="nav" aria-label="ポータルメニュー">
+          <a href="#">ホーム</a><a href="#">届出</a><a href="#" class="on">賦課金申告</a><a href="#">申告・納付状況</a><a href="#">還付申請</a><a href="#">通知書一覧</a>
+        </nav>
+        <div class="main">
+          <p class="crumb">賦課金申告 &gt; 2028年度11月分</p>
+          <h3>化石燃料賦課金 還付請求申告書(2028年度 11月分)</h3>
+          <div class="steps">
+            <span class="step done"><b>✓</b>対象期間</span>
+            <span class="step on"><b>2</b>控除入力</span>
+            <span class="step"><b>3</b>確認・提出</span>
+          </div>
+
+          <h4>11月の移出・引取り<span class="new">追加</span></h4>
+          <div class="opts">
+            <div class="opt"><i></i><div><b>ある</b><span>通常の申告に進みます。控除は申告の中で入力します。</span></div></div>
+            <div class="opt on"><i></i><div><b>ない(還付請求だけを行う)</b><span>明細の入力はありません。控除額の全額が還付の対象になります。</span></div></div>
+          </div>
+
+          <h4>賦課金額の控除</h4>
+          <div class="tblwrap">
+            <table>
+              <thead><tr><th>控除する理由</th><th>元の申告</th><th>燃料種別</th><th class="num">数量</th><th class="num">元申告時の単価<br>(円/t-CO₂)</th><th class="num">控除額(円)</th><th>証憑</th></tr></thead>
+              <tbody>
+                <tr><td>戻入れ<small>同じ採取場へ 2028-11-08</small></td><td><span class="id">LV-2028-000655</span><small>自社 10月分・完納</small></td><td>原油</td><td class="num">500.000 kL</td><td class="num">2,500</td><td class="num">3,273,750</td><td><span class="filechip">受払簿.pdf</span></td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="calc">
+            <h5>計算結果(自動計算)</h5>
+            <table>
+              <tr><td>賦課金額合計</td><td class="num">0 円</td></tr>
+              <tr><td>控除額合計</td><td class="num">3,273,750 円</td></tr>
+              <tr class="total"><td>還付を受ける額</td><td class="num">3,273,750 円</td></tr>
+            </table>
+          </div>
+          <div class="alert warn"><b>注意</b><span>11月に移出・引取りが1件でもある場合は、通常の申告で控除してください。この区分で提出した後に実績が判明したときは、機構から差戻しになります。</span></div>
+          <div class="actions"><button type="button" class="btn ghost" id="save-2">下書き保存</button><button type="button" class="btn lg" id="next-2">確認・提出へ</button></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 画面3 ============ -->
+  <section class="screen">
+    <div class="screen-head"><span class="screen-tag">P-3</span><h2>提出期限を過ぎて開いた場合</h2><span class="biz">入力チェック</span></div>
+    <p class="screen-note">画面1と同じ9月分を、提出期限後に開いた状態です。控除欄を使えなくし、何をすればよいかを案内します。参考制度では、戻入れの控除は翌月以降の期限内申告に回せます。</p>
+    <div class="frame">
+      <div class="chrome"><span class="dots"><i></i><i></i><i></i></span><span class="urlbar">https://portal.gxa.go.jp/levy/declaration/2028-09</span></div>
+      <div class="appbar"><span class="logo">GX推進機構 賦課金ポータル<small>事業者用</small></span><span class="user">△△資源開発株式会社</span></div>
+      <div class="main">
+        <h3>化石燃料賦課金 申告書(2028年度 9月分)</h3>
+        <div class="meta"><span class="pill p-back">期限後申告</span><span>提出期限 2028-10-31</span><span>本日 2028-11-05</span></div>
+        <div class="alert bad"><b>エラー</b><span>提出期限を過ぎているため、賦課金額の控除はこの申告では使えません。控除を外して提出してください。戻入れ分は、次回以降に期限内で提出する申告で控除できます。</span></div>
+
+        <h4 class="off">賦課金額の控除</h4>
+        <div class="tblwrap off" aria-disabled="true">
+          <table>
+            <thead><tr><th>控除する理由</th><th>元の申告</th><th>燃料種別</th><th class="num">数量</th><th class="num">控除額(円)</th></tr></thead>
+            <tbody>
+              <tr><td>戻入れ</td><td><span class="id">LV-2028-000540</span></td><td>原油</td><td class="num">1,800.000 kL</td><td class="num">11,785,500</td></tr>
+              <tr><td>移入後の再移出</td><td><span class="id">LV-2028-000498</span></td><td>原油</td><td class="num">200.000 kL</td><td class="num">1,309,500</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="calc">
+          <h5>計算結果(自動計算)</h5>
+          <table>
+            <tr><td>① 賦課金額合計</td><td class="num">9,922,500 円</td></tr>
+            <tr><td>② 控除額合計</td><td class="num muted">適用できません</td></tr>
+            <tr class="total"><td>③ 納付すべき額(100円未満切り捨て)</td><td class="num">9,922,500 円</td></tr>
+          </table>
+        </div>
+        <div class="actions"><button type="button" class="btn ghost" id="carry-3">控除を次回の申告に回す</button><button type="button" class="btn lg" id="next-3">控除なしで確認・提出へ</button></div>
+      </div>
+    </div>
+  </section>
+
+  <p class="group">内部業務(機構職員)</p>
+
+  <!-- ============ 画面4 ============ -->
+  <section class="screen gov-t">
+    <div class="screen-head"><span class="screen-tag gov">G-3</span><h2>申告審査(控除の検証)</h2><span class="biz">対応業務 B-2|還付の起点</span></div>
+    <p class="screen-note">画面1の申告を審査する画面です。還付申請書がないので、控除の根拠を元の申告と突き合わせる表をここに置きます。承認すると何が起きるかを、承認ボタンの上に並べます。</p>
+    <div class="frame">
+      <div class="chrome"><span class="dots"><i></i><i></i><i></i></span><span class="urlbar">https://admin.gxa.go.jp/declarations/LV-2028-000702</span></div>
+      <div class="appbar gov"><span class="logo">GX推進機構 賦課金管理システム<small>内部業務用</small></span><span class="user">審査担当 佐藤</span></div>
+      <div class="layout">
+        <nav class="nav" aria-label="内部業務メニュー">
+          <a href="#">ダッシュボード</a><a href="#">事業者管理</a><a href="#" class="on">申告審査</a><a href="#">決定・更正</a><a href="#">収納状況</a><a href="#">還付審査・支払</a><a href="#">マスタ管理</a>
+        </nav>
+        <div class="main">
+          <p class="crumb">申告審査 &gt; LV-2028-000702</p>
+          <h3>申告 LV-2028-000702(△△資源開発 2028年度9月分)</h3>
+          <div class="meta"><span class="pill p-review">審査中</span><span class="pill p-fixed">還付請求を兼ねる</span><span>受付 2028-10-20</span><span>提出期限 2028-10-31</span></div>
+          <div class="kpis">
+            <div class="kpi"><div class="v">9,922,500</div><div class="l">① 賦課金額合計(円)</div></div>
+            <div class="kpi"><div class="v">13,095,000</div><div class="l">② 控除額合計(円)</div></div>
+            <div class="kpi"><div class="v">0</div><div class="l">③ 納付すべき額(円)</div></div>
+            <div class="kpi key"><div class="v">3,172,500</div><div class="l">④ 還付見込額(円)</div></div>
+          </div>
+
+          <h4>控除の検証<span class="new">追加</span></h4>
+          <div class="tblwrap">
+            <table>
+              <thead><tr><th>控除する理由</th><th>元の申告</th><th>元申告の状態</th><th class="num">元の数量(kL)</th><th class="num">控除済み</th><th class="num">今回</th><th class="num">控除後の残</th><th>判定</th></tr></thead>
+              <tbody>
+                <tr><td>戻入れ</td><td><span class="id">LV-2028-000540</span><small>自社 7月分</small></td><td><span class="pill p-done">完納</span></td><td class="num">4,200.000</td><td class="num">0.000</td><td class="num">1,800.000</td><td class="num">2,400.000</td><td><span class="pill p-done">範囲内</span></td></tr>
+                <tr><td>移入後の再移出</td><td><span class="id">LV-2028-000498</span><small>□□鉱業 6月分(移出先が当事業者)</small></td><td><span class="pill p-done">完納</span></td><td class="num">800.000</td><td class="num">0.000</td><td class="num">200.000</td><td class="num">600.000</td><td><span class="pill p-done">範囲内</span></td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="check">
+            <span class="ok">期限内申告(受付 2028-10-20、提出期限 2028-10-31)</span>
+            <span class="ok">戻入れ先が届出済みの採取場(新潟〇〇鉱場)と一致</span>
+            <span class="ok">控除額が、元申告時の単価・係数で再計算した額と一致</span>
+            <span class="ok">同じ元申告・同じ数量の二重控除なし</span>
+            <span class="ok">証憑2件(受払簿、移入証明)</span>
+          </div>
+
+          <h4>承認すると行われる処理<span class="new">追加</span></h4>
+          <ol class="proc">
+            <li>申告を確定する <span>納付すべき額が0円なので、債権は発生しません</span></li>
+            <li>還付事案を自動で起票する <span>種別「申告控除不足」、3,172,500円</span></li>
+            <li>元の申告の控除済み数量を更新する <span>LV-2028-000540 は 0.000 → 1,800.000 kL、LV-2028-000498 は 0.000 → 200.000 kL</span></li>
+          </ol>
+          <div class="actions"><button type="button" class="btn danger" id="back-4">差戻し</button><button type="button" class="btn ghost" id="deny-4">控除を一部否認</button><button type="button" class="btn lg" id="ok-4">承認(決裁へ)</button></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 画面5 ============ -->
+  <section class="screen gov-t">
+    <div class="screen-head"><span class="screen-tag gov">G-6</span><h2>還付審査・支払(申告控除不足)</h2><span class="biz">対応業務 E系|帳票 R07</span></div>
+    <p class="screen-note">申告の承認で自動起票された還付事案です。更正の請求も還付申請書もなく、申告が起点になります。充当判定と支払は過納還付と同じ流れで、還付加算金の起算日だけが異なります。</p>
+    <div class="frame">
+      <div class="chrome"><span class="dots"><i></i><i></i><i></i></span><span class="urlbar">https://admin.gxa.go.jp/refunds/RF-2028-000131</span></div>
+      <div class="appbar gov"><span class="logo">GX推進機構 賦課金管理システム<small>内部業務用</small></span><span class="user">還付担当 鈴木</span></div>
+      <div class="layout">
+        <nav class="nav" aria-label="内部業務メニュー">
+          <a href="#">ダッシュボード</a><a href="#">事業者管理</a><a href="#">申告審査</a><a href="#">決定・更正</a><a href="#">収納状況</a><a href="#" class="on">還付審査・支払</a><a href="#">マスタ管理</a>
+        </nav>
+        <div class="main">
+          <p class="crumb">還付審査・支払 &gt; RF-2028-000131</p>
+          <h3>還付事案 RF-2028-000131(△△資源開発)</h3>
+          <div class="meta"><span class="pill p-fixed">申告控除不足</span><span class="new" style="margin-left:0">種別を追加</span><span class="pill p-review">加算金計算中</span></div>
+          <div class="track">
+            <div class="tnode done"><i></i>自動起票<small>2028-10-27</small></div>
+            <div class="tnode done"><i></i>充当判定<small>充当なし</small></div>
+            <div class="tnode now"><i></i>加算金計算</div>
+            <div class="tnode"><i></i>支払決定</div>
+            <div class="tnode"><i></i>ADAMS還付依頼</div>
+            <div class="tnode"><i></i>支払済</div>
+          </div>
+
+          <dl class="kv">
+            <dt>起点</dt><dd>申告 <span class="id">LV-2028-000702</span>(2028年度9月分、2028-10-27 確定)</dd>
+            <dt>還付元本</dt><dd class="num" style="text-align:left">3,172,500 円(控除額 13,095,000 − 賦課金額 9,922,500)</dd>
+            <dt>未納債権</dt><dd>なし(未納があれば、支払の前に充当します)</dd>
+            <dt>還付先口座</dt><dd>〇〇銀行 新潟支店 普通 ****4321(届出 2028-04-10、90日ルールの対象外)</dd>
+          </dl>
+
+          <div class="calc">
+            <h5>還付加算金<span class="new">起算日が別</span></h5>
+            <table>
+              <tr><td>起算日(申告書の提出期限の翌日)</td><td class="num">2028-11-01</td></tr>
+              <tr><td>支払決定の予定日</td><td class="num">2028-11-20</td></tr>
+              <tr><td>日数 × 利率</td><td class="num">20日 × 年0.9%</td></tr>
+              <tr><td>還付加算金</td><td class="num">1,565 円</td></tr>
+              <tr class="total"><td>支払額合計</td><td class="num">3,174,065 円</td></tr>
+            </table>
+            <p class="formula">過納還付は納付日の翌日から、申告控除不足は申告書の提出期限の翌日から数えます。起算日は還付の種別ごとのパラメータで持ちます。端数処理は政令待ちです。</p>
+          </div>
+          <div class="alert info"><b>案内</b><span>支払はADAMSの歳入還付で行う想定です。依頼時に接受番号を受け取り、支払結果の突合に使います(課題#51)。この申告が後日更正されて控除が否認された場合は、還付金の返還を求めます(課題#40)。</span></div>
+          <div class="actions"><button type="button" class="btn ghost" id="hold-5">保留</button><button type="button" class="btn lg" id="pay-5">支払決定(決裁へ)</button></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <p class="foot">関連: 課題管理表 #54、暫定想定集 #54、データモデル(還付事案の種別「申告控除不足」)、参考資料_石油石炭税申告書の構成 §5。計算の確認: 1,800 kL × 2.619 × 2,500円 = 11,785,500円、200 kL × 2.619 × 2,500円 = 1,309,500円、3,172,500円 × 0.9% × 20日 ÷ 365 = 1,564.5円。</p>
+</div>
