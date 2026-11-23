@@ -1,0 +1,469 @@
+<title>石油石炭税 修正申告の記載例</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Klee+One:wght@400;600&display=swap">
+<style>
+  /* layout: 説明 → 凡例 → 紙面(横スクロール枠の中にA4横) → 記載ポイント → 検算 → 付表 → 設計への読み替え、の縦一列 */
+  :root{
+    /* 画面側(テーマ追従) */
+    --ground:#f2f3f2; --ink:#1c2422; --ink-2:#5a6663; --line:#dde3e0;
+    --accent:#0e6a58; --panel:#ffffff;
+    --note:#b4381f; --note-ink:#ffffff;
+    /* 紙面側(公文書の見た目を両テーマで統一するため固定) */
+    --paper:#ffffff; --paper-ink:#1a1a1a; --rule:#2a2a2a;
+    --pen:#1f3fa8; --paper-note:#b4381f; --paper-note-ink:#ffffff;
+    --official:#eeeeea; --wm:rgba(180,60,60,.07);
+    --shadow:0 2px 6px rgba(0,0,0,.14), 0 12px 32px rgba(0,0,0,.10);
+    /* type */
+    --f-ui:"Hiragino Kaku Gothic ProN","Hiragino Sans","Yu Gothic UI","Yu Gothic","Meiryo",system-ui,sans-serif;
+    --f-form:"Hiragino Mincho ProN","Yu Mincho","MS PMincho","Noto Serif CJK JP",serif;
+    --f-pen:"Klee One","Hiragino Maru Gothic ProN","UD Digi Kyokasho N-R","Yu Kyokasho","Yu Gothic",sans-serif;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --ground:#151a19; --ink:#e8edeb; --ink-2:#9aa6a2; --line:#333d3a;
+      --accent:#4fb59c; --panel:#1e2523; --note:#f08a6e; --note-ink:#1a1210; color-scheme:dark }
+  }
+  :root[data-theme="dark"]{
+    --ground:#151a19; --ink:#e8edeb; --ink-2:#9aa6a2; --line:#333d3a;
+    --accent:#4fb59c; --panel:#1e2523; --note:#f08a6e; --note-ink:#1a1210; color-scheme:dark }
+
+  *{box-sizing:border-box}
+  body{background:var(--ground);color:var(--ink);margin:0;font-family:var(--f-ui);line-height:1.7;font-size:15px}
+  .wrap{max-width:1104px;margin:0 auto;padding-block:2.5rem 5rem;
+    padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px))}
+  h1{font-size:1.5rem;margin:0 0 .4rem;text-wrap:balance;line-height:1.35}
+  h2{font-size:1.1rem;margin:0;text-wrap:balance}
+  h3{font-size:.95rem;margin:0 0 .5rem}
+  .lede{color:var(--ink-2);max-width:46em;margin:0 0 .75rem}
+  .disclaimer{font-size:.8rem;color:var(--ink-2);background:var(--panel);border:1px solid var(--line);
+    border-radius:6px;padding:.6rem .9rem;margin:1rem 0 1.5rem;max-width:62em}
+  section{margin:0 0 3.25rem}
+  .doc-head{display:flex;align-items:baseline;gap:.75rem;margin-bottom:.35rem;flex-wrap:wrap}
+  .doc-tag{font-size:.72rem;font-weight:700;letter-spacing:.08em;color:var(--accent);
+    border:1px solid var(--accent);border-radius:4px;padding:.1rem .5rem;white-space:nowrap}
+  .doc-note{color:var(--ink-2);font-size:.85rem;margin:0 0 1rem;max-width:58em}
+
+  /* ---- 凡例 ---- */
+  .legend{display:flex;flex-wrap:wrap;gap:.5rem 1.25rem;margin:0 0 2.5rem;padding:0;list-style:none;font-size:.82rem;color:var(--ink-2)}
+  .legend li{display:flex;align-items:center;gap:.5rem}
+  .chip{background:var(--paper);color:var(--paper-ink);border:1px solid var(--rule);min-width:3.4em;height:1.9em;
+    display:inline-flex;align-items:center;justify-content:center;padding:0 .45em;font-family:var(--f-form);font-size:.8rem;position:relative}
+  .chip.off{background:var(--official)}
+
+  /* ---- 紙面(A4横) ---- */
+  .scroll{overflow-x:auto;padding:4px 4px 22px;margin:0 -4px}
+  .sheet{background:var(--paper);color:var(--paper-ink);width:1040px;margin:0 auto;padding:26px 30px 22px;
+    box-shadow:var(--shadow);font-family:var(--f-form);font-size:12.5px;line-height:1.45;position:relative;overflow:hidden}
+  .wm{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;z-index:2}
+  .wm span{font-size:92px;font-weight:800;color:var(--wm);transform:rotate(-18deg);letter-spacing:.3em;white-space:nowrap}
+  .pen{font-family:var(--f-pen);color:var(--pen);font-weight:600;font-style:normal}
+  .num{font-variant-numeric:tabular-nums}
+  .dd{text-decoration:line-through double var(--pen);text-decoration-thickness:1px}
+  .co{display:inline-flex;align-items:center;justify-content:center;width:17px;height:17px;border-radius:50%;
+    background:var(--paper-note);color:var(--paper-note-ink);font:700 10.5px/1 system-ui,sans-serif;
+    vertical-align:middle;margin:0 3px;flex:none;position:relative;z-index:3;letter-spacing:0;text-indent:0;padding:0}
+  /* 斜線: .x=申告者がペンで引く抹消 / .xp=様式に印字済みの斜線 */
+  .x,.xp{position:relative}
+  .x::after,.xp::after{content:"";position:absolute;inset:0;pointer-events:none}
+  .x::after{background:linear-gradient(to bottom right, transparent calc(50% - .9px), var(--pen) calc(50% - .9px), var(--pen) calc(50% + .9px), transparent calc(50% + .9px))}
+  .xp::after{background:linear-gradient(to bottom right, transparent calc(50% - .5px), var(--rule) calc(50% - .5px), var(--rule) calc(50% + .5px), transparent calc(50% + .5px))}
+  .off{background:var(--official)}
+
+  .f-title{display:flex;align-items:stretch;justify-content:center;position:relative;margin:0 0 8px;min-height:34px}
+  .f-title .t{font-size:16px;font-weight:700;letter-spacing:.14em;align-self:center;font-family:var(--f-ui)}
+  .f-title .t .pen{font-size:18px;letter-spacing:0;margin:0 .3em}
+  .jun{position:absolute;right:0;top:0;bottom:0;display:grid;grid-template-columns:56px 150px;border:1px solid var(--rule)}
+  .jun span{display:flex;align-items:center;justify-content:center;letter-spacing:.6em;padding-left:.6em}
+  .jun span+span{border-left:1px solid var(--rule)}
+
+  .fbox{display:grid;grid-template-columns:61% 39%;border:1.5px solid var(--rule)}
+  .fl{border-right:1px solid var(--rule);display:flex;flex-direction:column;min-width:0}
+  .fr{display:flex;flex-direction:column;min-width:0}
+
+  /* 申告者ブロック */
+  .app{display:grid;grid-template-columns:148px 1fr;border-bottom:1px solid var(--rule)}
+  .app-date{border-right:1px solid var(--rule);padding:16px 8px 30px;display:flex;flex-direction:column;justify-content:space-between;gap:38px;text-align:center}
+  .app-date .pen{font-size:15px;margin:0 .15em}
+  .arow{position:relative;min-height:56px;padding:3px 8px 20px;border-bottom:1px solid var(--rule)}
+  .arow:not(:has(.tel)){padding-bottom:6px}
+  .arow:last-child{border-bottom:0}
+  .lbl{font-size:10.5px}
+  .arow .val{display:block;font-size:14.5px;line-height:1.35;padding:1px 0 0 14px}
+  .arow .kana{display:block;font-size:10px;font-weight:400;letter-spacing:.1em;line-height:1.25}
+  .arow .tel{position:absolute;right:8px;bottom:3px;font-size:10.5px}
+  .arow .tel .pen{font-size:13px;margin:0 .2em}
+  .app-sub{display:grid;grid-template-columns:26px 1fr;border-top:1px solid var(--rule)}
+  .vlabel{border-right:1px solid var(--rule);display:flex;align-items:center;justify-content:center}
+
+  .sentence{padding:7px 8px;border-bottom:1px solid var(--rule);font-size:11.5px}
+
+  /* 税額表 */
+  table.tax{border-collapse:collapse;width:100%;table-layout:fixed;flex:1}
+  table.tax th,table.tax td{border:1px solid var(--rule);padding:3px 6px;font-weight:400;height:35px;vertical-align:middle}
+  table.tax tr>*:first-child{border-left:0}
+  table.tax tr>*:last-child{border-right:0}
+  table.tax tr:first-child>*{border-top:0}
+  table.tax tr:last-child>*{border-bottom:0}
+  table.tax th{text-align:center;height:26px}
+  table.tax th.span{letter-spacing:.9em;padding-left:.9em}
+  table.tax .k{text-align:center;letter-spacing:.5em;padding-left:.5em}
+  table.tax .k.wide{letter-spacing:1.6em;padding-left:1.6em}
+  table.tax .kl{text-align:left;letter-spacing:.12em}
+  table.tax .kl.tight{letter-spacing:0;font-size:11.5px}
+  table.tax .kl small{display:block;font-size:10px;letter-spacing:0;padding-left:1.6em}
+  table.tax .vc{text-align:center;padding:2px 0;white-space:nowrap}
+  table.tax tr:nth-last-child(-n+2) td{height:42px}
+  .vt{display:inline-block;width:1em;white-space:normal;word-break:break-all;overflow-wrap:anywhere;line-height:1.3;vertical-align:middle;letter-spacing:0;font-size:11.5px;text-align:center}
+  .vt2{display:inline-flex;flex-direction:row-reverse;gap:1px;vertical-align:middle}
+  .vt.sm{font-size:9.5px;line-height:1.12}
+  .hm{display:inline-block;vertical-align:middle;margin-right:1px}
+  .v{position:relative;text-align:right}
+  .v .u{position:absolute;right:4px;top:1px;font-size:9.5px}
+  .v .m{position:absolute;left:5px;top:1px;font-size:10.5px}
+  .v .pen{font-size:15.5px;display:inline-block;padding-top:9px}
+  .v .per{display:block;font-size:9.5px;font-weight:400;line-height:1;padding-top:10px;margin-bottom:-9px;padding-right:12px}
+  .v .p00{font-size:12px;letter-spacing:.08em;margin-left:1px;position:relative;top:1px}
+
+  /* 右列 */
+  .kbox{position:relative;padding:4px 10px 10px;border-bottom:1px solid var(--rule);font-size:11px;line-height:1.5}
+  .kbox .hd{font-size:12px;margin-bottom:1px}
+  .kbox .bank{display:grid;grid-template-columns:1fr auto 70px auto;gap:0 8px;align-items:end;margin:2px 0 4px 14px}
+  .kbox .ul{border-bottom:1px solid var(--rule);height:1.2em}
+  .kbox .stack{display:flex;flex-direction:column;line-height:1.3}
+  .kbox .ln{display:flex;gap:8px;align-items:end;margin:3px 0 3px 14px}
+  .kbox .ln .ul{flex:1;max-width:210px}
+  .rrow{display:grid;grid-template-columns:22px 118px 1fr;border-bottom:1px solid var(--rule);min-height:44px}
+  .rrow>div{padding:4px 6px;display:flex;align-items:center}
+  .rrow .mk{padding:4px 0 4px 5px}
+  .rrow .lb{border-right:1px solid var(--rule);font-size:11.5px;line-height:1.3;justify-content:center;text-align:center}
+  .rrow .lb.sm{font-size:10.5px;text-align:left;justify-content:flex-start}
+  .rrow .va{position:relative;align-items:flex-start;gap:6px}
+  .rrow .va .kome{font-size:10px}
+  .rrow .va .dt{margin:auto 0 2px auto;letter-spacing:.9em;font-size:11.5px;white-space:nowrap}
+  .rrow .va .pen{font-size:14px;align-self:center}
+  .rrow.tall{min-height:60px}
+  .rrow.kakunin{flex:1;min-height:120px;border-bottom:0;grid-template-columns:22px 1fr}
+  .rrow.kakunin .mk{border-right:1px solid var(--rule);padding:10px 0;justify-content:center;align-items:flex-start}
+
+  /* 付表 */
+  .f2-top{display:flex;align-items:flex-end;justify-content:space-between;gap:16px}
+  .f2-title{flex:1;text-align:center;font-size:16px;font-weight:700;letter-spacing:.22em;margin:0 0 10px;font-family:var(--f-ui)}
+  .f2-name{display:grid;grid-template-columns:86px 250px;border:1.5px solid var(--rule);border-bottom:0;width:max-content}
+  .f2-name div{padding:5px 8px;display:flex;align-items:center}
+  .f2-name div:first-child{border-right:1px solid var(--rule);font-size:11px;line-height:1.3;text-align:center}
+  .f2-name .pen{font-size:15px}
+  table.f2{border-collapse:collapse;width:100%;table-layout:fixed;border:1.5px solid var(--rule)}
+  table.f2 th,table.f2 td{border:1px solid var(--rule);padding:3px 8px;height:30px;font-weight:400}
+  table.f2 th{height:32px;letter-spacing:.5em;padding-left:.9em;line-height:1.3}
+  table.f2 td .u{position:absolute;right:6px;top:2px;font:400 10px/1.2 var(--f-form);color:var(--paper-ink)}
+  table.f2 td.first{height:42px;vertical-align:bottom;position:relative}
+  table.f2 td{text-align:center}
+  table.f2 td.pen{font-size:14.5px}
+  table.f2 td.r{text-align:right}
+  table.f2 tr.sum td{height:34px}
+  table.f2 tr.sum td:first-child{letter-spacing:2.2em;padding-left:2.2em}
+  .f2-foot{margin:8px 0 0;font-size:12px;letter-spacing:.2em}
+
+  /* ---- 解説(画面側) ---- */
+  ol.points{list-style:none;counter-reset:pt;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,330px),1fr));gap:.9rem 1.75rem;font-size:.88rem}
+  ol.points li{counter-increment:pt;position:relative;padding-left:2rem;min-width:0}
+  ol.points li::before{content:counter(pt);position:absolute;left:0;top:.2rem;width:1.35rem;height:1.35rem;border-radius:50%;
+    background:var(--note);color:var(--note-ink);font:700 .72rem/1.35rem system-ui,sans-serif;text-align:center}
+  ol.points b{display:block}
+  ol.points span{color:var(--ink-2)}
+  .tbl-scroll{overflow-x:auto}
+  table.calc{border-collapse:collapse;width:100%;min-width:640px;font-size:.86rem;background:var(--panel)}
+  table.calc th,table.calc td{border:1px solid var(--line);padding:.42rem .7rem;text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+  table.calc th{font-weight:700;text-align:center;color:var(--ink-2);font-size:.78rem}
+  table.calc td:first-child,table.calc th:first-child{text-align:left}
+  table.calc tr.total td{font-weight:700}
+  table.calc tr.total.final td{color:var(--accent)}
+  table.map{border-collapse:collapse;width:100%;min-width:640px;font-size:.86rem;background:var(--panel)}
+  table.map th,table.map td{border:1px solid var(--line);padding:.5rem .75rem;text-align:left;vertical-align:top}
+  table.map th{color:var(--ink-2);font-size:.78rem;white-space:nowrap}
+  table.map td:first-child{width:38%}
+  .small{font-size:.8rem;color:var(--ink-2);max-width:62em;margin:.7rem 0 0}
+  code{font-family:ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace;font-size:.9em}
+  .rrow .va .memo{font-size:12.5px;line-height:1.55;align-self:center;font-weight:600}
+</style>
+
+<div class="wrap">
+  <h1>還付が出た申告を修正する場合の記載例</h1>
+  <p class="lede">石油石炭税納税申告書(法第15条用)で、期限内申告で還付を受けた月について、後から引取り数量の計上漏れが見つかり修正申告する場面です。還付が減り、その差額を納付します。</p>
+  <p class="disclaimer">税関が公表している様式と「書き方」をもとに再現したイメージで、公式の記載例ではありません。事業者名・所在地・輸入申告番号・統計細分・控除額はすべて架空です。税率は2026年11月に確認した租税特別措置法の特例税率で計算しています。実際の提出には税関の最新様式を使い、記載方法は所轄の税関に確認してください。</p>
+
+  <ul class="legend" aria-label="凡例">
+    <li><span class="chip">税額</span>様式に印字済みの文字</li>
+    <li><span class="chip"><span class="pen">2,800</span></span>申告者が記入する内容</li>
+    <li><span class="chip x"></span>不要欄の抹消(斜線)</li>
+    <li><span class="chip"><span class="dd">修正</span></span>不要文字の抹消(二重線)</li>
+    <li><span class="chip off">※</span>税関が記入する欄(網掛けは本ページでの目印)</li>
+  </ul>
+
+  <!-- ============ 前提 ============ -->
+  <section>
+    <div class="doc-head"><h2>場面と数値</h2></div>
+    <p class="doc-note">令和8年8月引取り分。当初は災害控除が税額を上回り還付になりました。その後、原油の輸入申告1件(500,345ℓ)が付表から漏れていたことが分かり、修正申告します。</p>
+    <div class="tbl-scroll">
+      <table class="calc">
+        <tr><th>欄</th><th>当初申告(9月28日提出・期限内)</th><th>修正申告(11月16日提出)</th><th>増減</th></tr>
+        <tr><td>原油の課税標準数量</td><td>20,150,250 ℓ</td><td>20,650,595 ℓ</td><td>+500,345 ℓ</td></tr>
+        <tr><td>① 税額の合計</td><td>89,106,000 円</td><td>90,506,966 円</td><td>+1,400,966 円</td></tr>
+        <tr><td>② 控除を受けようとする金額</td><td>92,400,000 円</td><td>92,400,000 円</td><td>0 円</td></tr>
+        <tr><td>③ 還付を受ける金額(②−①)</td><td>3,294,000 円</td><td>1,893,034 円</td><td>−1,400,966 円</td></tr>
+        <tr class="total final"><td colspan="3">⑥ 差引納付すべき税額(100円未満切り捨て)</td><td>1,400,900 円</td></tr>
+      </table>
+    </div>
+  </section>
+
+  <!-- ============ 修正申告書 ============ -->
+  <section>
+    <div class="doc-head"><span class="doc-tag">本体</span><h2>修正申告書(1枚目)</h2></div>
+    <p class="doc-note">赤い番号は、下の「記載ポイント」と対応しています。画面幅が狭いときは紙面を横にスクロールできます。</p>
+    <div class="scroll" tabindex="0" role="group" aria-label="修正申告書の記載例(横スクロール可)">
+      <div class="sheet">
+        <div class="wm"><span>記載例</span></div>
+
+        <div class="f-title">
+          <div class="t">令和<span class="pen">8</span>年<span class="pen">8</span>月分石油石炭税納税申告書(法第15条用)<span class="co">1</span></div>
+          <div class="jun"><span>順号</span><span></span></div>
+        </div>
+
+        <div class="fbox">
+          <div class="fl">
+            <div class="app">
+              <div class="app-date">
+                <div>令和<span class="pen">8</span>年<span class="pen">11</span>月<span class="pen">16</span>日</div>
+                <div><span class="pen">横浜</span>税関長 殿</div>
+              </div>
+              <div>
+                <div class="arow" style="border-bottom:0">
+                  <span class="lbl">(納税地)</span>
+                  <span class="val pen">神奈川県横浜市中区〇〇町1丁目2番地(横浜製油所)</span>
+                  <span class="tel">(電話番号<span class="pen">045</span>―<span class="pen">000</span>―<span class="pen">0000</span>)</span>
+                </div>
+                <div class="app-sub">
+                  <div class="vlabel"><span class="vt" style="font-size:12.5px;line-height:2.2">申告者</span></div>
+                  <div>
+                    <div class="arow">
+                      <span class="lbl">(住所)(〒<span class="pen">100</span>−<span class="pen">0000</span>)</span>
+                      <span class="val pen">東京都千代田区〇〇1丁目1番1号</span>
+                      <span class="tel">(電話番号<span class="pen">03</span>―<span class="pen">0000</span>―<span class="pen">0000</span>)</span>
+                    </div>
+                    <div class="arow">
+                      <span class="lbl">(氏名又は名称及び代表者氏名)(フリガナ)</span>
+                      <span class="val pen"><span class="kana">マルマルセキユカブシキガイシャ　ミホン タロウ</span>〇〇石油株式会社 代表取締役 見本 太郎</span>
+                    </div>
+                    <div class="arow x">
+                      <span class="lbl">(同上代理人)</span>
+                      <span class="tel">(電話番号　　―　　―　　)</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="sentence">下記のとおり石油石炭税の納税申告書(<span class="dd">期限後申告書・</span>修正申告書<span class="dd">・還付請求申告書</span>)を提出します。<span class="co">2</span></div>
+
+            <table class="tax">
+              <colgroup><col style="width:8%"><col style="width:28%"><col style="width:25%"><col style="width:14%"><col style="width:25%"></colgroup>
+              <tr><th colspan="2" rowspan="2" class="span">区分</th><th colspan="3" class="span">この申告書による税額</th></tr>
+              <tr><th>Ⓐ 課税標準数量<span class="co">3</span></th><th>Ⓑ 税率</th><th>Ⓒ 税額</th></tr>
+              <tr>
+                <td colspan="2" class="k wide">原油</td>
+                <td class="v"><span class="u">ℓ</span><span class="pen num">20,650,595</span></td>
+                <td class="v"><span class="u">円</span><span class="pen per">1kℓにつき</span><span class="pen num">2,800</span></td>
+                <td class="v"><span class="u">円</span><span class="pen num">57,821,666</span></td>
+              </tr>
+              <tr>
+                <td colspan="2" class="k">石油製品</td>
+                <td class="v"><span class="u">ℓ</span><span class="pen num">5,020,500</span></td>
+                <td class="v"><span class="pen per">1kℓにつき</span><span class="pen num">2,800</span></td>
+                <td class="v"><span class="pen num">14,057,400</span></td>
+              </tr>
+              <tr>
+                <td rowspan="3" class="vc"><span class="vt">ガス状炭化水素</span></td>
+                <td class="kl">天然ガス</td>
+                <td class="v"><span class="u">㎏</span><span class="pen num">10,015,000</span></td>
+                <td class="v"><span class="pen per">1tにつき</span><span class="pen num">1,860</span></td>
+                <td class="v"><span class="pen num">18,627,900</span></td>
+              </tr>
+              <tr>
+                <td class="kl">その他</td>
+                <td class="v x"><span class="u">㎏</span></td>
+                <td class="v x"></td>
+                <td class="v x"></td>
+              </tr>
+              <tr>
+                <td class="kl">小　計</td>
+                <td class="v"><span class="u">㎏</span><span class="pen num">10,015,000</span></td>
+                <td class="v"></td>
+                <td class="v"><span class="pen num">18,627,900</span></td>
+              </tr>
+              <tr>
+                <td colspan="2" class="k wide">石炭</td>
+                <td class="v x"><span class="u">㎏</span></td>
+                <td class="v x"></td>
+                <td class="v x"></td>
+              </tr>
+              <tr>
+                <td colspan="2" class="kl">Ⓓ　合　　　　　　　　計</td>
+                <td class="xp"></td>
+                <td class="xp"></td>
+                <td class="v"><span class="m">①</span><span class="pen num">90,506,966</span></td>
+              </tr>
+              <tr>
+                <td colspan="2" class="kl tight">Ⓔ 控除(還付)を受けようとする金額<span class="co">4</span></td>
+                <td colspan="3" class="v"><span class="m">②</span><span class="pen num">92,400,000</span></td>
+              </tr>
+              <tr>
+                <td colspan="2" class="kl">Ⓕ 還付を受ける金額<span class="co">5</span></td>
+                <td colspan="3" class="v"><span class="m">③(②−①)</span><span class="pen num">1,893,034</span></td>
+              </tr>
+              <tr>
+                <td colspan="2" class="kl">Ⓖ 納付すべき税額<small>(100円未満の端数切り捨て)</small></td>
+                <td colspan="3" class="v x"><span class="m">④(①−②)</span><span class="p00 num">00</span></td>
+              </tr>
+              <tr>
+                <td rowspan="2" class="vc"><span class="hm">Ⓗ</span><span class="vt2"><span class="vt sm">この申告書が修正</span><span class="vt sm">申告である場合</span></span></td>
+                <td class="kl tight">Ⓘ 修正申告前の確定額<span class="co">6</span></td>
+                <td colspan="3" class="v"><span class="m">⑤</span><span class="pen num">−3,294,000</span></td>
+              </tr>
+              <tr>
+                <td class="kl tight">Ⓙ 差引納付すべき税額<span class="co">7</span><small style="padding-left:0">(100円未満の端数切り捨て)</small></td>
+                <td colspan="3" class="v"><span class="m">⑥(④−③−⑤)</span><span class="pen num">1,400,9</span><span class="p00 num">00</span></td>
+              </tr>
+            </table>
+          </div>
+
+          <div class="fr">
+            <div class="kbox x">
+              <div class="hd">Ⓚ 還付を受けようとする銀行又は郵便局</div>
+              <div>(銀行等への振込)</div>
+              <div class="bank">
+                <span class="ul"></span>
+                <span class="stack"><span>銀　　行</span><span>金庫・組合</span><span>農協・漁協</span></span>
+                <span class="ul"></span>
+                <span class="stack"><span>本店・支店</span><span>出　張　所</span><span>本所・支所</span></span>
+              </div>
+              <div class="ln"><span class="ul" style="max-width:90px"></span><span>預金・口座番号</span><span class="ul"></span></div>
+              <div>(ゆうちょ銀行への振込)</div>
+              <div class="ln"><span>記号番号</span><span class="ul"></span></div>
+              <div>(郵便局等の窓口受取り)</div>
+              <div class="ln"><span class="ul"></span></div>
+            </div>
+
+            <div class="rrow tall">
+              <div class="mk">Ⓛ</div>
+              <div class="lb">期限後申告・<br>修正申告をする<br>理由・事情</div>
+              <div class="va"><span class="co" style="margin-top:2px">8</span><span class="pen memo">令和8年8月に引き取った原油1件(輸入申告番号 999 0000 0045、500,345ℓ)を付表に計上していなかったため。</span></div>
+            </div>
+            <div class="rrow">
+              <div class="mk">Ⓜ</div>
+              <div class="lb">添付書類</div>
+              <div class="va"><span class="pen">付表 3葉(修正後)</span></div>
+            </div>
+            <div class="rrow">
+              <div class="mk">Ⓝ</div>
+              <div class="lb" style="letter-spacing:1.2em;padding-left:1.4em">摘要</div>
+              <div class="va x"></div>
+            </div>
+            <div class="rrow">
+              <div class="mk">Ⓞ</div>
+              <div class="lb sm">納期限延長の場合の延長後の納期限</div>
+              <div class="va off"><span class="kome">※</span><span class="dt">令和　年　月　日</span></div>
+            </div>
+            <div class="rrow">
+              <div class="mk">Ⓟ</div>
+              <div class="lb sm">納期限を延長した納付すべき税額</div>
+              <div class="va off"><span class="kome">※</span></div>
+            </div>
+            <div class="rrow">
+              <div class="mk"></div>
+              <div class="lb" style="letter-spacing:.5em;padding-left:.8em">通信日付印</div>
+              <div class="va off"><span class="kome">※</span><span class="dt">令和　年　月　日</span></div>
+            </div>
+            <div class="rrow kakunin">
+              <div class="mk"><span class="vt" style="line-height:2">確認</span></div>
+              <div class="va off"><span class="kome">※</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 記載ポイント ============ -->
+  <section>
+    <div class="doc-head"><h2>記載ポイント</h2></div>
+    <p class="doc-note">番号は紙面の赤い番号に対応します。根拠は税関の「石油石炭税納税申告書(法第15条用)の書き方」と国税通則法19条です。</p>
+    <ol class="points">
+      <li><b>標題は当初申告と同じ年月</b><span>修正する対象の月(引き取った年月)を書きます。日付欄は修正申告書を提出する日です。</span></li>
+      <li><b>「修正申告書」だけを残す</b><span>括弧内の「期限後申告書」と「還付請求申告書」を二重線で消します。</span></li>
+      <li><b>数量と税額は修正後の全体を書く</b><span>増えた分だけではなく、計上漏れを含めた月全体の数量・税額を書きます。付表も修正後の内容で作り直します。</span></li>
+      <li><b>②は当初申告で受けた控除額</b><span>修正申告書では新たな控除は受けられません。この例では、期限内申告で受けた控除額をそのまま書いています(下の注を参照)。</span></li>
+      <li><b>③は修正後の還付額</b><span>②−①を計算し直します。①が増えたので、還付は3,294,000円から1,893,034円に減ります。④は該当がないので斜線です。</span></li>
+      <li><b>⑤は修正前の還付額に「−」を付ける</b><span>直前の申告書の「還付を受ける金額」を、マイナスの印を付けて書きます。直前が納付だった場合は「納付すべき税額」をそのまま書きます。</span></li>
+      <li><b>⑥が今回納付する額</b><span>④−③−⑤ = 0 − 1,893,034 −(−3,294,000)= 1,400,966円。100円未満を切り捨てて1,400,900円です。修正申告書を提出する日までに納付します。</span></li>
+      <li><b>Ⓛに理由を書き、Ⓚは書かない</b><span>修正申告をすることになった理由と事情を書きます。還付口座(Ⓚ)は期限内申告で還付を受けるときだけの欄なので斜線です。</span></li>
+    </ol>
+    <p class="small">注(②の書き方): 「書き方」は、修正申告書では控除・還付を受けられないとしています。一方で、⑥の算式(④−③−⑤)には③が入っており、修正申告書に還付額が残る場合を前提にしていると読めます。そこでこの例は「期限内申告で受けた控除額は②に残し、新たな控除は足さない」という解釈で書いています。この解釈は税関に確認したものではありません。</p>
+  </section>
+
+  <!-- ============ 検算 ============ -->
+  <section>
+    <div class="doc-head"><h2>検算</h2></div>
+    <p class="doc-note">納付額を「納付は正、還付は負」の符号つきで見ると、修正後から修正前を引くだけで⑥になります。</p>
+    <div class="tbl-scroll">
+      <table class="calc">
+        <tr><th>項目</th><th>式</th><th>金額</th></tr>
+        <tr><td>修正前の納付額</td><td>当初の③に「−」</td><td>−3,294,000 円</td></tr>
+        <tr><td>修正後の納付額</td><td>④ − ③ = 0 − 1,893,034</td><td>−1,893,034 円</td></tr>
+        <tr class="total"><td>差額</td><td>(−1,893,034)−(−3,294,000)</td><td>+1,400,966 円</td></tr>
+        <tr class="total final"><td colspan="2">⑥ 差引納付すべき税額(100円未満切り捨て)</td><td>1,400,900 円</td></tr>
+      </table>
+    </div>
+    <p class="small">差額は、計上漏れだった原油の税額(500.345 kL × 2,800円 = 1,400,966円)と一致します。このほかに過少申告加算税と延滞税がかかりますが、申告書には書きません。</p>
+  </section>
+
+  <!-- ============ 付表 ============ -->
+  <section>
+    <div class="doc-head"><span class="doc-tag">付表</span><h2>付表(原油の1葉・修正後)</h2></div>
+    <p class="doc-note">付表も修正後の内容で書きます。4行目が計上漏れだった輸入申告です。摘要欄の書き込みはこの例での書き方です。</p>
+    <div class="scroll" tabindex="0" role="group" aria-label="付表の記載例(横スクロール可)">
+      <div class="sheet">
+        <div class="wm"><span>記載例</span></div>
+        <div class="f2-top"><div class="f2-title">石油石炭税納税申告書(法第15条用)付表</div>
+        <div class="f2-name"><div>申告者の氏名<br>又は名称</div><div><span class="pen">〇〇石油株式会社</span></div></div></div>
+        <table class="f2">
+          <colgroup><col style="width:13%"><col style="width:17%"><col style="width:19%"><col style="width:13%"><col style="width:20%"><col style="width:18%"></colgroup>
+          <tr><th>品名</th><th>輸入申告税関</th><th>輸入申告番号</th><th>統計細分</th><th>課税標準数量</th><th>摘要</th></tr>
+          <tr><td class="pen">原油</td><td class="pen">横浜本関</td><td class="pen num">999 0000 0038</td><td class="pen num">000</td><td class="pen num r first"><span class="u">ℓ<span class="dd">又は㎏</span></span>7,000,125</td><td></td></tr>
+          <tr><td class="pen">〃</td><td class="pen">〃</td><td class="pen num">999 0000 0052</td><td class="pen num">000</td><td class="pen num r">6,650,125</td><td></td></tr>
+          <tr><td class="pen">〃</td><td class="pen">千葉(支)</td><td class="pen num">999 0000 0041</td><td class="pen num">000</td><td class="pen num r">6,500,000</td><td></td></tr>
+          <tr><td class="pen">〃</td><td class="pen">〃</td><td class="pen num">999 0000 0045</td><td class="pen num">000</td><td class="pen num r">500,345</td><td class="pen" style="font-size:12.5px">当初申告で計上漏れ</td></tr>
+          <tr><td colspan="6" class="pen" style="letter-spacing:1em">以下余白</td></tr>
+          <tr><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+          <tr class="sum"><td>合計</td><td></td><td></td><td></td><td class="pen num r">20,650,595</td><td></td></tr>
+        </table>
+        <p class="f2-foot">注意　品名ごとに別葉に記載してください。</p>
+      </div>
+    </div>
+    <p class="small">公式様式の明細行は15行です。ここでは行数を省いています。添付書類欄は、石油製品・天然ガスの付表も含めて3葉を付ける想定で書いています。変更のない品名の付表を省けるかは「書き方」に記載がありません。</p>
+  </section>
+
+  <!-- ============ 他のパターン ============ -->
+  <section>
+    <div class="doc-head"><h2>修正前後の組み合わせ別の書き方</h2></div>
+    <p class="doc-note">当初申告は上と同じ(①89,106,000円、②92,400,000円、③還付3,294,000円)として、修正後の①だけを変えた場合です。2行目以降の数値は説明用です。</p>
+    <div class="tbl-scroll">
+      <table class="calc">
+        <tr><th>場面</th><th>修正後の①</th><th>③ 還付</th><th>④ 納付</th><th>⑤ 修正前</th><th>⑥ 差引納付</th></tr>
+        <tr><td>還付が減る(この記載例)</td><td>90,506,966</td><td>1,893,034</td><td>斜線</td><td>−3,294,000</td><td>1,400,900</td></tr>
+        <tr><td>還付から納付に転じる</td><td>95,000,000</td><td>斜線</td><td>2,600,000</td><td>−3,294,000</td><td>5,894,000</td></tr>
+        <tr><td>還付が増える</td><td>88,000,000</td><td colspan="4" style="text-align:left">修正申告ではなく、更正の請求で行います(国税通則法23条1項3号)</td></tr>
+      </table>
+    </div>
+    <p class="small">当初申告が納付だった通常の修正申告では、⑤に当初の「納付すべき税額」をそのまま書き、⑥ = ④ − ⑤ になります。</p>
+  </section>
+</div>

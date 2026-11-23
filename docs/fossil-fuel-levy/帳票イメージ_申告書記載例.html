@@ -93,7 +93,7 @@
   .arow .tel{position:absolute;right:8px;bottom:3px;font-size:10.5px}
   .arow .tel .pen{font-size:13px;margin:0 .2em}
   .app-sub{display:grid;grid-template-columns:26px 1fr;border-top:1px solid var(--rule)}
-  .vlabel{writing-mode:vertical-rl;letter-spacing:1.1em;border-right:1px solid var(--rule);display:flex;align-items:center;justify-content:center;padding-top:1.1em}
+  .vlabel{border-right:1px solid var(--rule);display:flex;align-items:center;justify-content:center}
 
   .sentence{padding:7px 8px;border-bottom:1px solid var(--rule);font-size:11.5px}
 
@@ -113,8 +113,9 @@
   table.tax .kl small{display:block;font-size:10px;letter-spacing:0;padding-left:1.6em}
   table.tax .vc{text-align:center;padding:2px 0;white-space:nowrap}
   table.tax tr:nth-last-child(-n+2) td{height:42px}
-  .vt{writing-mode:vertical-rl;display:inline-block;white-space:nowrap;line-height:1.25;vertical-align:middle;letter-spacing:.25em;font-size:11.5px;text-align:start}
-  .vt.sm{font-size:9.5px;letter-spacing:0;line-height:1.2}
+  .vt{display:inline-block;width:1em;white-space:normal;word-break:break-all;overflow-wrap:anywhere;line-height:1.3;vertical-align:middle;letter-spacing:0;font-size:11.5px;text-align:center}
+  .vt2{display:inline-flex;flex-direction:row-reverse;gap:1px;vertical-align:middle}
+  .vt.sm{font-size:9.5px;line-height:1.12}
   .hm{display:inline-block;vertical-align:middle;margin-right:1px}
   .v{position:relative;text-align:right}
   .v .u{position:absolute;right:4px;top:1px;font-size:9.5px}
@@ -226,7 +227,7 @@
                   <span class="tel">(電話番号<span class="pen">045</span>―<span class="pen">000</span>―<span class="pen">0000</span>)</span>
                 </div>
                 <div class="app-sub">
-                  <div class="vlabel">申告者</div>
+                  <div class="vlabel"><span class="vt" style="font-size:12.5px;line-height:2.2">申告者</span></div>
                   <div>
                     <div class="arow">
                       <span class="lbl">(住所)(〒<span class="pen">100</span>−<span class="pen">0000</span>)</span>
@@ -308,7 +309,7 @@
                 <td colspan="3" class="v"><span class="m">④(①−②)</span><span class="pen num">335,854,9</span><span class="p00 num">00</span></td>
               </tr>
               <tr>
-                <td rowspan="2" class="vc"><span class="hm">Ⓗ</span><span class="vt sm">この申告書が修正<br>申告である場合</span></td>
+                <td rowspan="2" class="vc"><span class="hm">Ⓗ</span><span class="vt2"><span class="vt sm">この申告書が修正</span><span class="vt sm">申告である場合</span></span></td>
                 <td class="kl tight">Ⓘ 修正申告前の確定額</td>
                 <td colspan="3" class="v x"><span class="m">⑤</span></td>
               </tr>
@@ -368,7 +369,7 @@
               <div class="va off"><span class="kome">※</span><span class="dt">令和　年　月　日</span></div>
             </div>
             <div class="rrow kakunin">
-              <div class="mk"><span class="vt" style="letter-spacing:.5em">確認</span></div>
+              <div class="mk"><span class="vt" style="line-height:2">確認</span></div>
               <div class="va off"><span class="kome">※</span></div>
             </div>
           </div>
