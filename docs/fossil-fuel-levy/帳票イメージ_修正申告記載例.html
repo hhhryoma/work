@@ -185,11 +185,13 @@
   .small{font-size:.8rem;color:var(--ink-2);max-width:62em;margin:.7rem 0 0}
   code{font-family:ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace;font-size:.9em}
   .rrow .va .memo{font-size:12.5px;line-height:1.55;align-self:center;font-weight:600}
+  .kbox .ul.f{height:auto;min-height:1.2em;text-align:center;line-height:1.25}
+  .kbox .ul.f .pen{font-size:13.5px}
 </style>
 
 <div class="wrap">
   <h1>還付が出た申告を修正する場合の記載例</h1>
-  <p class="lede">石油石炭税納税申告書(法第15条用)で、期限内申告で還付を受けた月について、後から引取り数量の計上漏れが見つかり修正申告する場面です。還付が減り、その差額を納付します。</p>
+  <p class="lede">石油石炭税納税申告書(法第15条用)で、期限内申告で還付を受けた月について、後から引取り数量の計上漏れが見つかり修正申告する場面です。還付が減り、その差額を納付します。当初申告と修正申告の両方の記載例を載せています。</p>
   <p class="disclaimer">税関が公表している様式と「書き方」をもとに再現したイメージで、公式の記載例ではありません。事業者名・所在地・輸入申告番号・統計細分・控除額はすべて架空です。税率は2026年11月に確認した租税特別措置法の特例税率で計算しています。実際の提出には税関の最新様式を使い、記載方法は所轄の税関に確認してください。</p>
 
   <ul class="legend" aria-label="凡例">
@@ -216,9 +218,196 @@
     </div>
   </section>
 
+  <!-- ============ 当初申告書 ============ -->
+  <section>
+    <div class="doc-head"><span class="doc-tag">当初</span><h2>当初申告書(9月28日提出・期限内)</h2></div>
+    <p class="doc-note">修正する前の、還付が出た期限内申告です。紙面の赤い番号は、すぐ下の「当初申告書の記載ポイント」に対応します。付表は省いています(修正後の付表から4行目を除いた内容です)。</p>
+    <div class="scroll" tabindex="0" role="group" aria-label="当初申告書の記載例(横スクロール可)">
+      <div class="sheet">
+        <div class="wm"><span>記載例</span></div>
+
+        <div class="f-title">
+          <div class="t">令和<span class="pen">8</span>年<span class="pen">8</span>月分石油石炭税納税申告書(法第15条用)</div>
+          <div class="jun"><span>順号</span><span></span></div>
+        </div>
+
+        <div class="fbox">
+          <div class="fl">
+            <div class="app">
+              <div class="app-date">
+                <div>令和<span class="pen">8</span>年<span class="pen">9</span>月<span class="pen">28</span>日</div>
+                <div><span class="pen">横浜</span>税関長 殿</div>
+              </div>
+              <div>
+                <div class="arow" style="border-bottom:0">
+                  <span class="lbl">(納税地)</span>
+                  <span class="val pen">神奈川県横浜市中区〇〇町1丁目2番地(横浜製油所)</span>
+                  <span class="tel">(電話番号<span class="pen">045</span>―<span class="pen">000</span>―<span class="pen">0000</span>)</span>
+                </div>
+                <div class="app-sub">
+                  <div class="vlabel"><span class="vt" style="font-size:12.5px;line-height:2.2">申告者</span></div>
+                  <div>
+                    <div class="arow">
+                      <span class="lbl">(住所)(〒<span class="pen">100</span>−<span class="pen">0000</span>)</span>
+                      <span class="val pen">東京都千代田区〇〇1丁目1番1号</span>
+                      <span class="tel">(電話番号<span class="pen">03</span>―<span class="pen">0000</span>―<span class="pen">0000</span>)</span>
+                    </div>
+                    <div class="arow">
+                      <span class="lbl">(氏名又は名称及び代表者氏名)(フリガナ)</span>
+                      <span class="val pen"><span class="kana">マルマルセキユカブシキガイシャ　ミホン タロウ</span>〇〇石油株式会社 代表取締役 見本 太郎</span>
+                    </div>
+                    <div class="arow x">
+                      <span class="lbl">(同上代理人)</span>
+                      <span class="tel">(電話番号　　―　　―　　)</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="sentence">下記のとおり石油石炭税の納税申告書(<span class="dd">期限後申告書・修正申告書・還付請求申告書</span>)を提出します。<span class="co">1</span></div>
+
+            <table class="tax">
+              <colgroup><col style="width:8%"><col style="width:28%"><col style="width:25%"><col style="width:14%"><col style="width:25%"></colgroup>
+              <tr><th colspan="2" rowspan="2" class="span">区分</th><th colspan="3" class="span">この申告書による税額</th></tr>
+              <tr><th>Ⓐ 課税標準数量</th><th>Ⓑ 税率</th><th>Ⓒ 税額</th></tr>
+              <tr>
+                <td colspan="2" class="k wide">原油</td>
+                <td class="v"><span class="u">ℓ</span><span class="pen num">20,150,250</span></td>
+                <td class="v"><span class="u">円</span><span class="pen per">1kℓにつき</span><span class="pen num">2,800</span></td>
+                <td class="v"><span class="u">円</span><span class="pen num">56,420,700</span></td>
+              </tr>
+              <tr>
+                <td colspan="2" class="k">石油製品</td>
+                <td class="v"><span class="u">ℓ</span><span class="pen num">5,020,500</span></td>
+                <td class="v"><span class="pen per">1kℓにつき</span><span class="pen num">2,800</span></td>
+                <td class="v"><span class="pen num">14,057,400</span></td>
+              </tr>
+              <tr>
+                <td rowspan="3" class="vc"><span class="vt">ガス状炭化水素</span></td>
+                <td class="kl">天然ガス</td>
+                <td class="v"><span class="u">㎏</span><span class="pen num">10,015,000</span></td>
+                <td class="v"><span class="pen per">1tにつき</span><span class="pen num">1,860</span></td>
+                <td class="v"><span class="pen num">18,627,900</span></td>
+              </tr>
+              <tr>
+                <td class="kl">その他</td>
+                <td class="v x"><span class="u">㎏</span></td>
+                <td class="v x"></td>
+                <td class="v x"></td>
+              </tr>
+              <tr>
+                <td class="kl">小　計</td>
+                <td class="v"><span class="u">㎏</span><span class="pen num">10,015,000</span></td>
+                <td class="v"></td>
+                <td class="v"><span class="pen num">18,627,900</span></td>
+              </tr>
+              <tr>
+                <td colspan="2" class="k wide">石炭</td>
+                <td class="v x"><span class="u">㎏</span></td>
+                <td class="v x"></td>
+                <td class="v x"></td>
+              </tr>
+              <tr>
+                <td colspan="2" class="kl">Ⓓ　合　　　　　　　　計</td>
+                <td class="xp"></td>
+                <td class="xp"></td>
+                <td class="v"><span class="m">①</span><span class="pen num">89,106,000</span></td>
+              </tr>
+              <tr>
+                <td colspan="2" class="kl tight">Ⓔ 控除(還付)を受けようとする金額<span class="co">2</span></td>
+                <td colspan="3" class="v"><span class="m">②</span><span class="pen num">92,400,000</span></td>
+              </tr>
+              <tr>
+                <td colspan="2" class="kl">Ⓕ 還付を受ける金額<span class="co">3</span></td>
+                <td colspan="3" class="v"><span class="m">③(②−①)</span><span class="pen num">3,294,000</span></td>
+              </tr>
+              <tr>
+                <td colspan="2" class="kl">Ⓖ 納付すべき税額<small>(100円未満の端数切り捨て)</small></td>
+                <td colspan="3" class="v x"><span class="m">④(①−②)</span><span class="p00 num">00</span></td>
+              </tr>
+              <tr>
+                <td rowspan="2" class="vc"><span class="hm">Ⓗ</span><span class="vt2"><span class="vt sm">この申告書が修正</span><span class="vt sm">申告である場合</span></span></td>
+                <td class="kl tight">Ⓘ 修正申告前の確定額</td>
+                <td colspan="3" class="v x"><span class="m">⑤</span></td>
+              </tr>
+              <tr>
+                <td class="kl tight">Ⓙ 差引納付すべき税額<small style="padding-left:0">(100円未満の端数切り捨て)</small></td>
+                <td colspan="3" class="v x"><span class="m">⑥(④−③−⑤)</span><span class="p00 num">00</span></td>
+              </tr>
+            </table>
+          </div>
+
+          <div class="fr">
+            <div class="kbox">
+              <div class="hd">Ⓚ 還付を受けようとする銀行又は郵便局<span class="co">4</span></div>
+              <div>(銀行等への振込)</div>
+              <div class="bank">
+                <span class="ul f"><span class="pen">〇〇</span></span>
+                <span class="stack"><span>銀　　行</span><span class="dd">金庫・組合</span><span class="dd">農協・漁協</span></span>
+                <span class="ul f"><span class="pen">横浜</span></span>
+                <span class="stack"><span><span class="dd">本店・</span>支店</span><span class="dd">出　張　所</span><span class="dd">本所・支所</span></span>
+              </div>
+              <div class="ln"><span class="ul f" style="max-width:90px"><span class="pen">普通</span></span><span>預金・口座番号</span><span class="ul f"><span class="pen num">0000000</span></span></div>
+              <div class="x">
+                <div>(ゆうちょ銀行への振込)</div>
+                <div class="ln"><span>記号番号</span><span class="ul"></span></div>
+                <div>(郵便局等の窓口受取り)</div>
+                <div class="ln"><span class="ul"></span></div>
+              </div>
+            </div>
+
+            <div class="rrow tall">
+              <div class="mk">Ⓛ</div>
+              <div class="lb">期限後申告・<br>修正申告をする<br>理由・事情</div>
+              <div class="va x"></div>
+            </div>
+            <div class="rrow tall">
+              <div class="mk">Ⓜ</div>
+              <div class="lb">添付書類</div>
+              <div class="va"><span class="co" style="margin-top:2px">5</span><span class="pen memo">付表3葉、災害控除(還付)明細書、被災確認書、損失補償を証する書類</span></div>
+            </div>
+            <div class="rrow">
+              <div class="mk">Ⓝ</div>
+              <div class="lb" style="letter-spacing:1.2em;padding-left:1.4em">摘要</div>
+              <div class="va x"></div>
+            </div>
+            <div class="rrow">
+              <div class="mk">Ⓞ</div>
+              <div class="lb sm">納期限延長の場合の延長後の納期限</div>
+              <div class="va off"><span class="kome">※</span><span class="dt">令和　年　月　日</span></div>
+            </div>
+            <div class="rrow">
+              <div class="mk">Ⓟ</div>
+              <div class="lb sm">納期限を延長した納付すべき税額</div>
+              <div class="va off"><span class="kome">※</span></div>
+            </div>
+            <div class="rrow">
+              <div class="mk"></div>
+              <div class="lb" style="letter-spacing:.5em;padding-left:.8em">通信日付印</div>
+              <div class="va off"><span class="kome">※</span><span class="dt">令和　年　月　日</span></div>
+            </div>
+            <div class="rrow kakunin">
+              <div class="mk"><span class="vt" style="line-height:2">確認</span></div>
+              <div class="va off"><span class="kome">※</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <h3 style="margin-top:1.25rem">当初申告書の記載ポイント</h3>
+    <ol class="points">
+      <li><b>括弧内をすべて二重線で消す</b><span>期限内申告なので、「期限後申告書・修正申告書・還付請求申告書」はどれも当てはまりません。</span></li>
+      <li><b>②は災害控除の額</b><span>「石油石炭税災害控除(還付)明細書」の控除(還付)税額の合計を書きます。この控除は期限内申告でしか受けられません。</span></li>
+      <li><b>③に還付額を書き、④は斜線</b><span>②が①より大きいので、②−① = 3,294,000円を③に書きます。納付はないので④は斜線、修正申告ではないので⑤⑥も斜線です。</span></li>
+      <li><b>Ⓚに還付先を書く</b><span>期限内申告で③に金額を書いたときだけ記入します。使わない機関名・店舗種別を二重線、ゆうちょ銀行と窓口受取りの欄を斜線で消すのは、この例での書き方です。</span></li>
+      <li><b>控除の書類を添付する</b><span>付表のほか、災害控除(還付)明細書、被災確認書、損失補償を受けた事実を証する書類を付けます。</span></li>
+    </ol>
+  </section>
+
   <!-- ============ 修正申告書 ============ -->
   <section>
-    <div class="doc-head"><span class="doc-tag">本体</span><h2>修正申告書(1枚目)</h2></div>
+    <div class="doc-head"><span class="doc-tag">修正</span><h2>修正申告書(11月16日提出)</h2></div>
     <p class="doc-note">赤い番号は、下の「記載ポイント」と対応しています。画面幅が狭いときは紙面を横にスクロールできます。</p>
     <div class="scroll" tabindex="0" role="group" aria-label="修正申告書の記載例(横スクロール可)">
       <div class="sheet">
@@ -395,7 +584,7 @@
 
   <!-- ============ 記載ポイント ============ -->
   <section>
-    <div class="doc-head"><h2>記載ポイント</h2></div>
+    <div class="doc-head"><h2>修正申告書の記載ポイント</h2></div>
     <p class="doc-note">番号は紙面の赤い番号に対応します。根拠は税関の「石油石炭税納税申告書(法第15条用)の書き方」と国税通則法19条です。</p>
     <ol class="points">
       <li><b>標題は当初申告と同じ年月</b><span>修正する対象の月(引き取った年月)を書きます。日付欄は修正申告書を提出する日です。</span></li>
