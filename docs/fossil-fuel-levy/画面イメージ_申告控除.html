@@ -257,7 +257,7 @@
               </tbody>
             </table>
           </div>
-          <p class="hint">戻入れ 1,800.000 kL は、元の申告の移出数量 4,200.000 kL(控除済み 0.000 kL)の範囲内です。</p>
+          <p class="hint">戻入れ 1,800.000 kL は、元の申告で賦課対象になった数量 4,200.000 kL(輸出などの減免数量を除く。控除済み 0.000 kL)の範囲内です。</p>
           <div class="actions" style="margin-top:.7rem"><button type="button" class="btn ghost sm" id="add-deduction">控除を追加</button></div>
 
           <div class="calc">
@@ -401,7 +401,7 @@
           <h4>控除の検証<span class="new">追加</span></h4>
           <div class="tblwrap">
             <table>
-              <thead><tr><th>控除する理由</th><th>元の申告</th><th>元申告の状態</th><th class="num">元の数量(kL)</th><th class="num">控除済み</th><th class="num">今回</th><th class="num">控除後の残</th><th>判定</th></tr></thead>
+              <thead><tr><th>控除する理由</th><th>元の申告</th><th>元申告の状態</th><th class="num">元の賦課対象数量<br>(kL・減免後)</th><th class="num">控除済み</th><th class="num">今回</th><th class="num">控除後の残</th><th>判定</th></tr></thead>
               <tbody>
                 <tr><td>戻入れ</td><td><span class="id">LV-2028-000540</span><small>自社 7月分</small></td><td><span class="pill p-done">完納</span></td><td class="num">4,200.000</td><td class="num">0.000</td><td class="num">1,800.000</td><td class="num">2,400.000</td><td><span class="pill p-done">範囲内</span></td></tr>
                 <tr><td>移入後の再移出</td><td><span class="id">LV-2028-000498</span><small>□□鉱業 6月分(移出先が当事業者)</small></td><td><span class="pill p-done">完納</span></td><td class="num">800.000</td><td class="num">0.000</td><td class="num">200.000</td><td class="num">600.000</td><td><span class="pill p-done">範囲内</span></td></tr>
@@ -413,6 +413,7 @@
             <span class="ok">戻入れ先が届出済みの採取場(新潟〇〇鉱場)と一致</span>
             <span class="ok">控除額が、元申告時の単価・係数で再計算した額と一致</span>
             <span class="ok">同じ元申告・同じ数量の二重控除なし</span>
+            <span class="ok">元申告の減免数量(輸出・未納税移出など)を控除の基礎に含めていない</span>
             <span class="ok">証憑2件(受払簿、移入証明)</span>
           </div>
 
