@@ -1,0 +1,211 @@
+<title>確定方式と業務フロー</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+  /* layout: 結論 → 3方式の比較表 → 方式ごとのスイムレーン(事業者/行政・本システム/収納の3列、縦が時間順) → システムへの影響 → 現行設計との差分 */
+  :root{
+    --ground:#f7f8f7; --panel:#ffffff; --ink:#1c2422; --ink-2:#5a6663; --line:#dde3e0;
+    --kikou:#0e6a58; --kikou-soft:#e3f0ec;
+    --adams:#2b4a6f; --adams-soft:#e7edf4;
+    --biz:#5f6866; --biz-soft:#eceeed;
+    --warn:#9a6a00; --warn-bg:#faf0d6; --info:#175a8c; --info-bg:#e2eef7;
+    --bad:#b3362b; --bad-bg:#fbe7e4;
+    --f-ui:"Hiragino Kaku Gothic ProN","Hiragino Sans","Yu Gothic UI","Yu Gothic","Meiryo",system-ui,sans-serif;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --ground:#151a19; --panel:#1e2523; --ink:#e8edeb; --ink-2:#9aa6a2; --line:#333d3a;
+      --kikou:#4fb59c; --kikou-soft:#20332e; --adams:#7da3cc; --adams-soft:#1f2a38;
+      --biz:#a3adaa; --biz-soft:#2a3230;
+      --warn:#e3b95a; --warn-bg:#37301c; --info:#7db6e0; --info-bg:#1c2f3d; --bad:#ef8d82; --bad-bg:#3b211e;
+      color-scheme:dark;
+    }
+  }
+  :root[data-theme="dark"]{
+    --ground:#151a19; --panel:#1e2523; --ink:#e8edeb; --ink-2:#9aa6a2; --line:#333d3a;
+    --kikou:#4fb59c; --kikou-soft:#20332e; --adams:#7da3cc; --adams-soft:#1f2a38;
+    --biz:#a3adaa; --biz-soft:#2a3230;
+    --warn:#e3b95a; --warn-bg:#37301c; --info:#7db6e0; --info-bg:#1c2f3d; --bad:#ef8d82; --bad-bg:#3b211e;
+    color-scheme:dark;
+  }
+  *{box-sizing:border-box}
+  body{background:var(--ground);color:var(--ink);font-family:var(--f-ui);line-height:1.7;margin:0;font-size:15px}
+  .wrap{max-width:1080px;margin:0 auto;padding-block:2.5rem 5rem;
+    padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px))}
+  h1{font-size:1.55rem;line-height:1.4;margin:0 0 .4rem;text-wrap:balance}
+  h2{font-size:1.15rem;margin:0 0 .3rem;text-wrap:balance}
+  h3{font-size:.95rem;margin:1.4rem 0 .4rem}
+  .lede{color:var(--ink-2);max-width:50em;margin:0 0 1rem}
+  section{margin:0 0 3.25rem}
+  .note{color:var(--ink-2);font-size:.85rem;margin:0 0 1rem;max-width:58em}
+  .small{color:var(--ink-2);font-size:.8rem;margin:.6rem 0 0;max-width:62em}
+  .cite{font-size:.72rem;color:var(--ink-2);white-space:nowrap}
+  b.k{font-weight:700}
+
+  .verdict{background:var(--kikou-soft);border:1.5px solid var(--kikou);border-radius:8px;padding:1rem 1.2rem;margin:1.2rem 0 2.5rem;max-width:62em}
+  .verdict h2{color:var(--kikou);font-size:1rem}
+  .verdict p{margin:.3rem 0 0}
+
+  .tbl{overflow-x:auto;border:1px solid var(--line);border-radius:8px;background:var(--panel)}
+  table{border-collapse:collapse;width:100%;font-size:.84rem;min-width:760px}
+  th,td{padding:.55rem .75rem;border-bottom:1px solid var(--line);vertical-align:top;text-align:left}
+  th{font-size:.74rem;color:var(--ink-2);background:color-mix(in srgb, var(--panel) 55%, var(--ground));white-space:nowrap}
+  tr:last-child td{border-bottom:0}
+  td:first-child{font-weight:700;white-space:nowrap;color:var(--ink-2);font-size:.78rem}
+  td.gx{background:var(--kikou-soft)}
+  th.gx{color:var(--kikou)}
+
+  /* swimlane */
+  .lanes{border:1px solid var(--line);border-radius:8px;background:var(--panel);overflow:hidden}
+  .lhead,.lrow{display:grid;grid-template-columns:repeat(3,minmax(0,1fr))}
+  .lhead div{padding:.45rem .8rem;font-size:.74rem;font-weight:700;letter-spacing:.06em;border-bottom:1px solid var(--line)}
+  .lhead div+div,.lrow>div+div{border-left:1px dashed var(--line)}
+  .lhead .l1{color:var(--biz)} .lhead .l2{color:var(--kikou)} .lhead .l3{color:var(--adams)}
+  .lrow>div{padding:.4rem .6rem;min-width:0}
+  .lsep{padding:.35rem .8rem;font-size:.72rem;font-weight:700;color:var(--ink-2);background:color-mix(in srgb, var(--panel) 50%, var(--ground));border-top:1px solid var(--line);border-bottom:1px solid var(--line);letter-spacing:.04em}
+  .step{border-radius:6px;padding:.5rem .7rem;font-size:.82rem;line-height:1.55;position:relative}
+  .step .n{font-weight:800;margin-right:.35rem;font-variant-numeric:tabular-nums}
+  .step .t{font-weight:700}
+  .step p{margin:.15rem 0 0;color:var(--ink-2);font-size:.76rem}
+  .s1{background:var(--biz-soft);color:var(--ink)}
+  .s2{background:var(--kikou-soft);color:var(--ink)}
+  .s2 .t{color:var(--kikou)}
+  .s3{background:var(--adams-soft);color:var(--ink)}
+  .s3 .t{color:var(--adams)}
+  .step.fix{outline:1.5px solid var(--kikou);outline-offset:-1.5px}
+  .sys{display:inline-block;font-size:.66rem;font-weight:700;color:var(--kikou);border:1px solid var(--kikou);border-radius:4px;padding:0 .35rem;margin:.25rem .25rem 0 0;letter-spacing:.03em;background:var(--panel)}
+  .out{display:inline-block;font-size:.66rem;font-weight:700;color:var(--warn);background:var(--warn-bg);border-radius:4px;padding:0 .35rem;margin:.25rem .25rem 0 0}
+  .lane-label{display:none;font-size:.66rem;font-weight:700;letter-spacing:.05em;margin-bottom:.1rem}
+  .legend{display:flex;flex-wrap:wrap;gap:.4rem 1.2rem;font-size:.76rem;color:var(--ink-2);margin:0 0 .7rem}
+  .legend span{display:inline-flex;align-items:center;gap:.4rem}
+  .sw{width:.9rem;height:.9rem;border-radius:3px;display:inline-block}
+  @media (max-width:720px){
+    .lhead{display:none}
+    .lrow{display:block}
+    .lrow>div:empty{display:none}
+    .lrow>div+div{border-left:0}
+    .lane-label{display:block}
+    .s1 .lane-label{color:var(--biz)} .s2 .lane-label{color:var(--kikou)} .s3 .lane-label{color:var(--adams)}
+  }
+
+  ol.diff{margin:0;padding:0;list-style:none;display:grid;gap:.8rem;max-width:66em;counter-reset:d}
+  ol.diff li{counter-increment:d;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:.75rem 1rem .8rem 2.9rem;position:relative;font-size:.86rem}
+  ol.diff li::before{content:counter(d);position:absolute;left:.9rem;top:.8rem;width:1.4rem;height:1.4rem;border-radius:50%;background:var(--bad-bg);color:var(--bad);font:800 .74rem/1.4rem system-ui,sans-serif;text-align:center}
+  ol.diff b{display:block;margin-bottom:.15rem}
+  ol.diff .was{color:var(--ink-2);font-size:.78rem;display:block;margin-top:.25rem}
+</style>
+
+<div class="wrap">
+  <h1>申告納付方式と賦課課税方式の業務フロー</h1>
+  <p class="lede">賦課金の額を「誰が、いつ確定させるか」の2つの方式を、国税の一般的な仕組み(国税通則法)で整理し、化石燃料賦課金の実際の条文(GX推進法)と並べます。あわせて、本システムの業務・画面への影響をまとめます。</p>
+
+  <div class="verdict">
+    <h2>化石燃料賦課金は申告納付方式で法定済み</h2>
+    <p>GX推進法18条は、事業者が翌月末までに申告書を出して同じ期限までに納付し、無申告や記載の誤りがあるときだけ経済産業大臣が額を決定する、と定めています。課題#3(申告納付か賦課決定か)は、この条文で決着しています。条文はe-Govの現行版(2026年11月取得)で確認しました。</p>
+  </div>
+
+  <!-- ============ 比較 ============ -->
+  <section>
+    <h2>3つの比較</h2>
+    <p class="note">左2列は国税の一般形、右端が化石燃料賦課金です。条文番号は、国税は国税通則法、賦課金はGX推進法です。</p>
+    <div class="tbl">
+      <table>
+        <tr><th>観点</th><th>申告納付方式(申告納税方式)</th><th>賦課課税方式</th><th class="gx">化石燃料賦課金</th></tr>
+        <tr><td>額を確定させる人</td><td>原則は事業者の申告。無申告・誤りのときだけ行政の処分 <span class="cite">16条1項1号</span></td><td>もっぱら行政の処分 <span class="cite">16条1項2号</span></td><td class="gx">事業者の申告。無申告・誤りのときは大臣が決定 <span class="cite">18条1項・4項</span></td></tr>
+        <tr><td>事業者が出すもの</td><td>納税申告書(税額まで書く)</td><td>課税標準申告書(数量などだけ。不要な税目もある) <span class="cite">31条</span></td><td class="gx">申告書(賦課金の額ほか省令の事項) <span class="cite">18条1項</span></td></tr>
+        <tr><td>行政からの通知</td><td>通常はない。更正・決定のときだけ</td><td>毎回、賦課決定通知書か納税告知書 <span class="cite">32条3項・36条</span></td><td class="gx">通常はない。決定のときだけ <span class="cite">18条4項</span></td></tr>
+        <tr><td>納期限</td><td>法定納期限(申告期限と同じことが多い)</td><td>告知書に書かれた納期限</td><td class="gx">申告書の提出期限(翌月末)<span class="cite">18条2項</span>。決定は通知から15日以内 <span class="cite">18条5項</span></td></tr>
+        <tr><td>負担が増える是正</td><td>修正申告 <span class="cite">19条</span>、更正 <span class="cite">24条</span></td><td>変更の賦課決定 <span class="cite">32条2項</span></td><td class="gx">大臣の決定 <span class="cite">18条4項</span>。修正申告の規定は法律にない</td></tr>
+        <tr><td>負担が減る是正</td><td>更正の請求(5年)→減額更正 <span class="cite">23条</span></td><td>変更の賦課決定。事業者からは不服申立て(更正の請求は納税申告書が対象)</td><td class="gx">大臣の決定と、過納分の充当・還付 <span class="cite">18条4項・6項</span>。更正の請求の規定は法律にない</td></tr>
+        <tr><td>未納</td><td>督促 <span class="cite">37条</span>→滞納処分</td><td>同左</td><td class="gx">督促 <span class="cite">20条</span>→延滞金 年14.5% <span class="cite">21条</span>→滞納処分(国税滞納処分の例)</td></tr>
+        <tr><td>システムの重心</td><td>申告の受付・審査。処分は例外</td><td>決定と通知書の発行が毎期・全件</td><td class="gx">申告納付方式と同じ</td></tr>
+      </table>
+    </div>
+  </section>
+
+  <!-- ============ フロー ============ -->
+  <section>
+    <h2>方式ごとの業務フロー</h2>
+    <p class="note">上から下へ時間順です。列は担い手を表します。国税では「行政」は税務署、賦課金では経済産業大臣の徴収事務を行う機構(本システム)です。</p>
+    <div class="legend">
+      <span><i class="sw s1"></i>事業者</span>
+      <span><i class="sw s2"></i>行政・機構(本システム)</span>
+      <span><i class="sw s3"></i>収納(経産省・ADAMS)</span>
+      <span><span class="sys">B-1</span>本システムの業務ID</span>
+      <span><span class="out">対象外</span>本システムの対象外</span>
+    </div>
+
+    <h3>A. 申告納付方式(国税の一般形)</h3>
+    <div class="lanes">
+      <div class="lhead"><div class="l1">事業者</div><div class="l2">行政</div><div class="l3">収納</div></div>
+      <div class="lrow"><div><div class="step s1"><span class="lane-label">事業者</span><span class="n">1</span><span class="t">申告書を作って期限内に出す</span><p>課税標準と税額を自分で計算する。出した時点で額が確定する <span class="cite">17条</span></p></div></div><div><div class="step s2 fix"><span class="lane-label">行政</span><span class="n">2</span><span class="t">受け付ける</span><p>この時点では処分をしない</p></div></div><div></div></div>
+      <div class="lrow"><div><div class="step s1"><span class="lane-label">事業者</span><span class="n">3</span><span class="t">法定納期限までに納付</span><p><span class="cite">35条1項</span></p></div></div><div></div><div><div class="step s3"><span class="lane-label">収納</span><span class="n">4</span><span class="t">収納</span></div></div></div>
+      <div class="lsep">例外: 誤り・無申告があったとき</div>
+      <div class="lrow"><div></div><div><div class="step s2"><span class="lane-label">行政</span><span class="n">5</span><span class="t">調査して更正・決定し、通知書を送る</span><p><span class="cite">24条・25条</span></p></div></div><div></div></div>
+      <div class="lrow"><div><div class="step s1"><span class="lane-label">事業者</span><span class="n">6</span><span class="t">通知から1月以内に納付</span><p><span class="cite">35条2項2号</span></p></div></div><div></div><div></div></div>
+      <div class="lsep">事業者からの是正</div>
+      <div class="lrow"><div><div class="step s1"><span class="lane-label">事業者</span><span class="n">7</span><span class="t">増える向きは修正申告、減る向きは更正の請求</span><p>修正申告は提出日に納付 <span class="cite">19条・35条2項1号</span>。更正の請求は5年以内 <span class="cite">23条</span></p></div></div><div><div class="step s2"><span class="lane-label">行政</span><span class="n">8</span><span class="t">請求を認めれば減額更正し、還付する</span></div></div><div></div></div>
+      <div class="lsep">未納のとき</div>
+      <div class="lrow"><div></div><div><div class="step s2"><span class="lane-label">行政</span><span class="n">9</span><span class="t">督促し、それでも納めなければ滞納処分</span><p><span class="cite">37条</span></p></div></div><div></div></div>
+    </div>
+
+    <h3>B. 賦課課税方式(国税の一般形)</h3>
+    <div class="lanes">
+      <div class="lhead"><div class="l1">事業者</div><div class="l2">行政</div><div class="l3">収納</div></div>
+      <div class="lrow"><div><div class="step s1"><span class="lane-label">事業者</span><span class="n">1</span><span class="t">課税標準申告書を出す(必要な税目だけ)</span><p>数量などを書く。税額は書かない <span class="cite">31条</span></p></div></div><div></div><div></div></div>
+      <div class="lrow"><div></div><div><div class="step s2 fix"><span class="lane-label">行政</span><span class="n">2</span><span class="t">調査して賦課決定する</span><p>ここで額が確定する <span class="cite">32条1項</span></p></div></div><div></div></div>
+      <div class="lrow"><div></div><div><div class="step s2"><span class="lane-label">行政</span><span class="n">3</span><span class="t">賦課決定通知書か納税告知書を送る</span><p>納付額・納期限・納付場所を書く <span class="cite">32条3項・36条</span></p></div></div><div></div></div>
+      <div class="lrow"><div><div class="step s1"><span class="lane-label">事業者</span><span class="n">4</span><span class="t">告知書の納期限までに納付</span></div></div><div></div><div><div class="step s3"><span class="lane-label">収納</span><span class="n">5</span><span class="t">収納</span></div></div></div>
+      <div class="lsep">是正</div>
+      <div class="lrow"><div><div class="step s1"><span class="lane-label">事業者</span><span class="n">6</span><span class="t">不服があれば不服申立て</span><p>修正申告・更正の請求の仕組みはない</p></div></div><div><div class="step s2"><span class="lane-label">行政</span><span class="n">7</span><span class="t">過大・過少を知れば変更の賦課決定</span><p><span class="cite">32条2項</span></p></div></div><div></div></div>
+      <div class="lsep">未納のとき</div>
+      <div class="lrow"><div></div><div><div class="step s2"><span class="lane-label">行政</span><span class="n">8</span><span class="t">督促し、それでも納めなければ滞納処分</span><p><span class="cite">37条</span></p></div></div><div></div></div>
+    </div>
+
+    <h3>C. 化石燃料賦課金(GX推進法の現行条文)</h3>
+    <div class="lanes">
+      <div class="lhead"><div class="l1">事業者(化石燃料採取者等)</div><div class="l2">機構(本システム)</div><div class="l3">収納(経産省・ADAMS)</div></div>
+      <div class="lrow"><div><div class="step s1"><span class="lane-label">事業者</span><span class="n">1</span><span class="t">採取・引取りの前に届け出る</span><p>変更・廃止は30日以内 <span class="cite">16条・17条</span></p></div></div><div><div class="step s2"><span class="lane-label">機構</span><span class="n">2</span><span class="t">届出を受け付け、事業者を登録</span><p><span class="sys">A-1</span><span class="sys">A-2</span><span class="sys">P-2</span></p></div></div><div></div></div>
+      <div class="lrow"><div><div class="step s1"><span class="lane-label">事業者</span><span class="n">3</span><span class="t">翌月末までに申告書を出す</span><p>承認を受けていない輸入者は引取りの時 <span class="cite">18条1項</span>。政令で定める原油等は減額を申告 <span class="cite">15条</span></p></div></div><div><div class="step s2 fix"><span class="lane-label">機構</span><span class="n">4</span><span class="t">申告を受け付けて審査</span><p>申告で額が確定する <span class="sys">B-1</span><span class="sys">B-2</span><span class="sys">P-3</span><span class="sys">G-3</span></p></div></div><div></div></div>
+      <div class="lrow"><div><div class="step s1"><span class="lane-label">事業者</span><span class="n">5</span><span class="t">申告書の提出期限までに納付</span><p><span class="cite">18条2項</span></p></div></div><div></div><div><div class="step s3"><span class="lane-label">収納</span><span class="n">6</span><span class="t">調定に基づいて収納し、収納済通知を返す</span><p>調定連携 IF-1o、収納済通知 IF-1a</p></div></div></div>
+      <div class="lrow"><div></div><div><div class="step s2"><span class="lane-label">機構</span><span class="n">7</span><span class="t">収納済通知を取り込み、消し込む</span><p>接受番号で突合 <span class="sys">D-1</span><span class="sys">D-2</span><span class="sys">G-5</span></p></div></div><div></div></div>
+      <div class="lsep">例外: 無申告・記載の誤りがあったとき</div>
+      <div class="lrow"><div></div><div><div class="step s2"><span class="lane-label">機構</span><span class="n">8</span><span class="t">額を決定して通知する</span><p>大臣の名で行う <span class="cite">18条4項</span> <span class="sys">C-1</span><span class="sys">C-2</span><span class="sys">C-3</span><span class="sys">G-4</span></p></div></div><div></div></div>
+      <div class="lrow"><div><div class="step s1"><span class="lane-label">事業者</span><span class="n">9</span><span class="t">不足額を通知から15日以内に納付</span><p><span class="cite">18条5項</span></p></div></div><div><div class="step s2"><span class="lane-label">機構</span><span class="n">10</span><span class="t">納め過ぎは未納に充当し、残りを還付</span><p><span class="cite">18条6項</span> <span class="sys">E-1</span><span class="sys">E-3</span><span class="sys">G-6</span></p></div></div><div></div></div>
+      <div class="lsep">減額・還付、延納</div>
+      <div class="lrow"><div><div class="step s1"><span class="lane-label">事業者</span><span class="n">11</span><span class="t">政令の原油等は還付を申請、延納は申請と担保</span><p><span class="cite">15条・19条</span></p></div></div><div><div class="step s2"><span class="lane-label">機構</span><span class="n">12</span><span class="t">用途還付の審査・支払、延納の審査・担保管理</span><p><span class="sys">E-2</span><span class="sys">E-3</span><span class="sys">D-3</span><span class="sys">D-4</span></p></div></div><div></div></div>
+      <div class="lsep">未納のとき</div>
+      <div class="lrow"><div></div><div><div class="step s2"><span class="lane-label">機構</span><span class="n">13</span><span class="t">督促し、延滞金を計算し、滞納処分へ</span><p>督促状の期限までに完納すれば延滞金はかからない <span class="cite">20条・21条</span> <span class="out">督促状発行は対象外</span></p></div></div><div></div></div>
+    </div>
+    <p class="small">C の「申告で額が確定する」は、18条の構造(申告と同じ期限で納付し、誤りのときだけ決定)からの読み取りです。条文には「確定」という言葉はありません。</p>
+  </section>
+
+  <!-- ============ 影響 ============ -->
+  <section>
+    <h2>方式の違いが本システムに与える影響</h2>
+    <p class="note">もし賦課課税方式だった場合に何が変わるかを、現行設計(申告納付方式)と並べます。</p>
+    <div class="tbl">
+      <table>
+        <tr><th>対象</th><th>申告納付方式(現行設計・法律どおり)</th><th>賦課課税方式だった場合</th></tr>
+        <tr><td>申告書 F02 / P-3</td><td>賦課金額まで計算して出す</td><td>数量だけを出す。金額は見込みの表示にとどまる</td></tr>
+        <tr><td>決定 C-1 / G-4</td><td>無申告・誤りのときだけ</td><td>毎期・全件。決裁件数が月次の申告件数と同じになる</td></tr>
+        <tr><td>通知書 R系</td><td>決定・更正・還付のときだけ</td><td>毎期・全件に決定通知書を発行</td></tr>
+        <tr><td>債権の発生 / 調定 IF-1o</td><td>申告の受付・審査で発生</td><td>決定の後で発生。納期限は通知ごとに決まる</td></tr>
+        <tr><td>事業者からの是正 E-1</td><td>減額の申出を受けて決定・還付</td><td>不服申立ての受付になる</td></tr>
+        <tr><td>期限後・修正の区分</td><td>申告区分として持つ</td><td>不要</td></tr>
+      </table>
+    </div>
+  </section>
+
+  <!-- ============ 差分 ============ -->
+  <section>
+    <h2>条文の確認で見つかった、現行設計との差分</h2>
+    <p class="note">GX推進法の現行条文と照らして、これまでの仮置きと違っていた点です。設計書側の修正と課題の追加を行いました。</p>
+    <ol class="diff">
+      <li><b>徴収するのは経済産業大臣、機構は事務を行う</b>大臣が徴収し(11条)、機構に徴収事務を行わせる(25条)。申告書の提出先、決定、督促は大臣の名で行われ、機構が事務を担う。通知書の名義と決裁の設計に影響する。<span class="was">これまで: 徴収主体は機構</span></li>
+      <li><b>納付期限は申告期限と同じ翌月末</b>申告した額を申告書の提出期限までに納付する(18条2項)。承認を受けていない輸入者は引取りの時に申告・納付する(18条1項)。<span class="was">これまで: 申告は翌月末、納付は翌々月末(仮)</span></li>
+      <li><b>決定の後の納付期限は通知から15日以内</b>決定額の全額、または不足額を、通知を受けた日から15日以内に納付する(18条5項)。<span class="was">これまで: 未定義(国税の1月を想定しがち)</span></li>
+      <li><b>延滞金は督促したときに年14.5%</b>督促した額について、納付期限の翌日から完納日の前日まで年14.5%(21条)。督促状の期限までに完納すれば徴収しない。1,000円未満の額は対象外、基礎は1,000円未満切捨て、結果は100円未満切捨て、100円未満は徴収しない。<span class="was">これまで: 2か月までは年2.4%、以降は年8.7%(国税の延滞税水準)。督促とは無関係に計算</span></li>
+      <li><b>修正申告と更正の請求は法律に規定がない</b>是正は大臣の決定(18条4項)と、納め過ぎの充当・還付(18条6項)だけが法律にある。修正申告・更正の請求に当たる手続が政令・省令で設けられるかは未確定(26条で政令に委任)。<span class="was">これまで: 国税と同じく修正申告・更正の請求があると想定</span></li>
+    </ol>
+  </section>
+</div>
